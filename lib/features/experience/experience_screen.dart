@@ -6,35 +6,25 @@ import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 
-// --- Providers (Gerenciamento de Estado com Riverpod) ---
+// --- Camada de Dados e Lógica ---
 
-// 1. Provider para o Repositório, que lida com a lógica de acesso ao banco de dados.
 final experiencesRepositoryProvider = Provider<ExperiencesRepository>((ref) {
   final isarService = ref.watch(isarServiceProvider);
   return ExperiencesRepository(isarService);
 });
 
-// 2. StreamProvider para observar a lista de experiências em tempo real.
-// A UI que assiste a este provider será reconstruída automaticamente
-// sempre que uma experiência for adicionada, editada ou removida.
 final experiencesStreamProvider =
 StreamProvider.autoDispose<List<Experience>>((ref) {
   final experiencesRepository = ref.watch(experiencesRepositoryProvider);
-  return experiencesRepository.watchExperiences();
+  return experiencesRepository.watchAllExperiences();
 });
 
-
-// --- Repositório (Lógica de Dados) ---
-
-// Classe responsável por toda a comunicação com o banco de dados Isar
-// relacionada a experiências profissionais (Experience).
 class ExperiencesRepository {
   final IsarService _isarService;
-
   ExperiencesRepository(this._isarService);
 
-  // Observa a coleção de experiências, ordenando da data de início mais recente para a mais antiga.
-  Stream<List<Experience>> watchExperiences() async* {
+  // Ordena por data de início, da mais recente para a mais antiga.
+  Stream<List<Experience>> watchAllExperiences() async* {
     final isar = await _isarService.db;
     yield* isar.experiences
         .where()
@@ -42,23 +32,16 @@ class ExperiencesRepository {
         .watch(fireImmediately: true);
   }
 
-  // Salva (cria ou atualiza) uma experiência profissional no banco de dados.
   Future<void> saveExperience(Experience experience) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.experiences.put(experience);
-    });
+    await isar.writeTxn(() => isar.experiences.put(experience));
   }
 
-  // Deleta uma experiência do banco de dados pelo seu ID.
   Future<void> deleteExperience(int experienceId) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.experiences.delete(experienceId);
-    });
+    await isar.writeTxn(() => isar.experiences.delete(experienceId));
   }
 }
-
 
 // --- Tela Principal (UI) ---
 
@@ -67,84 +50,76 @@ class ExperienceScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Assiste ao provider do stream para obter o estado atual dos dados.
     final experiencesAsyncValue = ref.watch(experiencesStreamProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Experiência Profissional'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: experiencesAsyncValue.when(
-            data: (experiences) {
-              if (experiences.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'Nenhuma experiência profissional cadastrada.\nClique em "+" para adicionar a primeira.',
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-              // Se há dados, constrói a lista de experiências.
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                itemCount: experiences.length,
-                itemBuilder: (context, index) {
-                  final experience = experiences[index];
-                  return _ExperienceCard(experience: experience);
-                },
-              );
-            },
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stack) => Text('Ocorreu um erro: $error'),
-          ),
-        ),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Adicionar Experiência'),
-        onPressed: () {
-          // Chama o diálogo para criar uma nova experiência.
-          _showExperienceDialog(context, ref);
-        },
+        onPressed: () => _showExperienceDialog(context, ref),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: experiencesAsyncValue.when(
+              data: (experiences) {
+                if (experiences.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Nenhuma experiência profissional cadastrada.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text('Adicionar Primeira Experiência'),
+                          onPressed: () => _showExperienceDialog(context, ref),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  itemCount: experiences.length,
+                  itemBuilder: (context, index) {
+                    return _ExperienceCard(experience: experiences[index]);
+                  },
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (error, stack) => Text('Ocorreu um erro: $error'),
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  // Função helper para exibir o diálogo de formulário.
   void _showExperienceDialog(BuildContext context, WidgetRef ref, {Experience? experience}) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Impede fechar o diálogo ao clicar fora
-      builder: (context) => ExperienceFormDialog(
-        ref: ref,
-        experience: experience,
-      ),
+      barrierDismissible: false,
+      builder: (context) => _ExperienceFormDialog(experienceToEdit: experience),
     );
   }
 }
 
-
-// --- Widgets Auxiliares (Boa prática para organizar a UI) ---
-
-// Widget para exibir um único card de experiência na lista.
+// Card para exibir uma única experiência
 class _ExperienceCard extends ConsumerWidget {
   const _ExperienceCard({required this.experience});
   final Experience experience;
 
-  // Função para formatar o período no formato "Mês Ano - Mês Ano".
   String _formatPeriod(Experience exp) {
     final format = DateFormat('MMMM yyyy', 'pt_BR');
     final startDateString = exp.startDate != null ? format.format(exp.startDate!) : 'N/A';
     final endDateString = exp.isCurrent ? 'Presente' : (exp.endDate != null ? format.format(exp.endDate!) : 'N/A');
-
-    // Capitaliza a primeira letra para melhor aparência.
-    final capitalizedStartDate = startDateString[0].toUpperCase() + startDateString.substring(1);
-    final capitalizedEndDate = endDateString[0].toUpperCase() + endDateString.substring(1);
-
-    return '$capitalizedStartDate - $capitalizedEndDate';
+    return '${startDateString[0].toUpperCase()}${startDateString.substring(1)} - ${endDateString[0].toUpperCase()}${endDateString.substring(1)}';
   }
 
   @override
@@ -157,11 +132,16 @@ class _ExperienceCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (experience.isFeatured)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12.0, top: 4.0),
+                    child: Icon(Icons.star, color: Colors.amber, size: 20),
+                  ),
                 Expanded(
                   child: Text(
-                    experience.jobTitle ?? 'Cargo não informado',
+                    experience.jobTitle,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -170,38 +150,35 @@ class _ExperienceCard extends ConsumerWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: 'Editar Experiência',
-                      onPressed: () {
-                        // Chama o mesmo método da tela principal para editar.
-                        ExperienceScreen()._showExperienceDialog(context, ref, experience: experience);
-                      },
+                      onPressed: () => ExperienceScreen()._showExperienceDialog(context, ref, experience: experience),
                     ),
                     IconButton(
                       icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
                       tooltip: 'Excluir Experiência',
-                      onPressed: () {
-                        _showDeleteConfirmationDialog(context, ref, experience);
-                      },
+                      onPressed: () => _showDeleteConfirmationDialog(context, ref, experience),
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${experience.company ?? "Empresa não informada"} • ${experience.location ?? "Local não informado"}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
+            Padding(
+              padding: EdgeInsets.only(left: experience.isFeatured ? 32.0 : 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    '${experience.company} • ${experience.location ?? "Local não informado"}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.secondary),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_formatPeriod(experience), style: Theme.of(context).textTheme.bodySmall),
+                  if (experience.description?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 12),
+                    Text(experience.description!, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _formatPeriod(experience),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              experience.description ?? 'Sem descrição.',
-              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
         ),
@@ -209,7 +186,6 @@ class _ExperienceCard extends ConsumerWidget {
     );
   }
 
-  // Diálogo para confirmar a exclusão de um item.
   void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref, Experience experience) {
     showDialog(
       context: context,
@@ -232,84 +208,69 @@ class _ExperienceCard extends ConsumerWidget {
   }
 }
 
-// Diálogo com o formulário, convertido para StatefulWidget para gerenciar seu estado interno.
-class ExperienceFormDialog extends StatefulWidget {
-  final WidgetRef ref;
-  final Experience? experience;
-
-  const ExperienceFormDialog({super.key, required this.ref, this.experience});
+// Widget para o formulário de diálogo, para manter o estado local
+class _ExperienceFormDialog extends ConsumerStatefulWidget {
+  final Experience? experienceToEdit;
+  const _ExperienceFormDialog({this.experienceToEdit});
 
   @override
-  State<ExperienceFormDialog> createState() => _ExperienceFormDialogState();
+  ConsumerState<_ExperienceFormDialog> createState() => _ExperienceFormDialogState();
 }
 
-class _ExperienceFormDialogState extends State<ExperienceFormDialog> {
+class _ExperienceFormDialogState extends ConsumerState<_ExperienceFormDialog> {
   final _formKey = GlobalKey<FormState>();
-
-  late TextEditingController _jobTitleController;
-  late TextEditingController _companyController;
-  late TextEditingController _locationController;
-  late TextEditingController _descriptionController;
+  late final TextEditingController _jobTitleController;
+  late final TextEditingController _companyController;
+  late final TextEditingController _locationController;
+  late final TextEditingController _descriptionController;
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isCurrent = false;
+  bool _isFeatured = false;
 
   @override
   void initState() {
     super.initState();
-    final experience = widget.experience;
-    _jobTitleController = TextEditingController(text: experience?.jobTitle);
-    _companyController = TextEditingController(text: experience?.company);
-    _locationController = TextEditingController(text: experience?.location);
-    _descriptionController = TextEditingController(text: experience?.description);
-    _startDate = experience?.startDate;
-    _endDate = experience?.endDate;
-    _isCurrent = experience?.isCurrent ?? false;
+    final exp = widget.experienceToEdit;
+    _jobTitleController = TextEditingController(text: exp?.jobTitle);
+    _companyController = TextEditingController(text: exp?.company);
+    _locationController = TextEditingController(text: exp?.location);
+    _descriptionController = TextEditingController(text: exp?.description);
+    _startDate = exp?.startDate;
+    _endDate = exp?.endDate;
+    _isCurrent = exp?.isCurrent ?? false;
+    _isFeatured = exp?.isFeatured ?? false;
   }
-
   @override
   void dispose() {
-    _jobTitleController.dispose();
-    _companyController.dispose();
-    _locationController.dispose();
-    _descriptionController.dispose();
+    _jobTitleController.dispose(); _companyController.dispose();
+    _locationController.dispose(); _descriptionController.dispose();
     super.dispose();
   }
 
-  // Função que chama o seletor de Mês/Ano.
   Future<void> _selectMonthYear(BuildContext context, {required bool isStartDate}) async {
-    final pickedDate = await showMonthYearPicker(
-      context: context,
-      initialDate: (isStartDate ? _startDate : _endDate) ?? DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-      locale: const Locale('pt', 'BR'), // Garante que o seletor apareça em português
+    final picked = await showMonthYearPicker(
+      context: context, initialDate: (isStartDate ? _startDate : _endDate) ?? DateTime.now(),
+      firstDate: DateTime(1950), lastDate: DateTime.now(), locale: const Locale('pt', 'BR'),
     );
-
-    if (pickedDate != null) {
-      setState(() {
-        if (isStartDate) {
-          _startDate = pickedDate;
-        } else {
-          _endDate = pickedDate;
-        }
-      });
+    if (picked != null) {
+      setState(() => isStartDate ? _startDate = picked : _endDate = picked);
     }
   }
 
   void _onSave() {
     if (_formKey.currentState!.validate()) {
-      final experienceToSave = (widget.experience ?? Experience())
+      final expToSave = (widget.experienceToEdit ?? Experience())
         ..jobTitle = _jobTitleController.text.trim()
         ..company = _companyController.text.trim()
         ..location = _locationController.text.trim()
         ..description = _descriptionController.text.trim()
         ..startDate = _startDate
-        ..endDate = _isCurrent ? null : _endDate // Se for atual, a data de fim é nula.
-        ..isCurrent = _isCurrent;
+        ..endDate = _isCurrent ? null : _endDate
+        ..isCurrent = _isCurrent
+        ..isFeatured = _isFeatured;
 
-      widget.ref.read(experiencesRepositoryProvider).saveExperience(experienceToSave);
-
+      ref.read(experiencesRepositoryProvider).saveExperience(expToSave);
       Navigator.of(context).pop();
     }
   }
@@ -317,20 +278,21 @@ class _ExperienceFormDialogState extends State<ExperienceFormDialog> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMMM yyyy', 'pt_BR');
+    final isEditing = widget.experienceToEdit != null;
 
     return AlertDialog(
-      title: Text(widget.experience == null ? 'Nova Experiência' : 'Editar Experiência'),
+      title: Text(isEditing ? 'Editar Experiência' : 'Nova Experiência'),
       content: Form(
         key: _formKey,
         child: SizedBox(
-          width: 500, // Largura fixa para melhor layout no desktop
+          width: 500,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(controller: _jobTitleController, decoration: const InputDecoration(labelText: 'Cargo'), validator: (value) => value!.trim().isEmpty ? 'Este campo é obrigatório' : null),
+                TextFormField(controller: _jobTitleController, decoration: const InputDecoration(labelText: 'Cargo*'), validator: (v) => v!.trim().isEmpty ? 'Campo obrigatório' : null),
                 const SizedBox(height: 12),
-                TextFormField(controller: _companyController, decoration: const InputDecoration(labelText: 'Empresa'), validator: (value) => value!.trim().isEmpty ? 'Este campo é obrigatório' : null),
+                TextFormField(controller: _companyController, decoration: const InputDecoration(labelText: 'Empresa*'), validator: (v) => v!.trim().isEmpty ? 'Campo obrigatório' : null),
                 const SizedBox(height: 12),
                 TextFormField(controller: _locationController, decoration: const InputDecoration(labelText: 'Localização', hintText: 'Ex: São Paulo, SP')),
                 const SizedBox(height: 20),
@@ -340,23 +302,16 @@ class _ExperienceFormDialogState extends State<ExperienceFormDialog> {
                     IconButton(icon: const Icon(Icons.calendar_today), onPressed: () => _selectMonthYear(context, isStartDate: true)),
                   ],
                 ),
-                // Validação visual simples para a data de início
                 if (_startDate == null) Padding(padding: const EdgeInsets.only(top: 4.0), child: Text('Selecione uma data de início', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12))),
-                CheckboxListTile(
-                  title: const Text('Este é meu emprego atual'),
-                  value: _isCurrent,
-                  onChanged: (value) => setState(() => _isCurrent = value ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (!_isCurrent) Row(
-                  children: [
-                    Expanded(child: Text(_endDate == null ? 'Data de Término' : 'Término: ${dateFormat.format(_endDate!)}')),
-                    IconButton(icon: const Icon(Icons.calendar_today), onPressed: () => _selectMonthYear(context, isStartDate: false)),
-                  ],
-                ),
+                CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Este é meu emprego atual'), value: _isCurrent, onChanged: (v) => setState(() => _isCurrent = v ?? false)),
+                if (!_isCurrent) Row(children: [
+                  Expanded(child: Text(_endDate == null ? 'Data de Término' : 'Término: ${dateFormat.format(_endDate!)}')),
+                  IconButton(icon: const Icon(Icons.calendar_today), onPressed: () => _selectMonthYear(context, isStartDate: false)),
+                ]),
                 const SizedBox(height: 12),
-                TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Descrição das Atividades', alignLabelWithHint: true, border: OutlineInputBorder()), maxLines: 4),
+                TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Descrição das Atividades', alignLabelWithHint: true, border: OutlineInputBorder()), maxLines: 5),
+                const SizedBox(height: 8),
+                CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Marcar como destaque'), subtitle: const Text('Dá ênfase a esta experiência no currículo.'), value: _isFeatured, onChanged: (v) => setState(() => _isFeatured = v ?? false)),
               ],
             ),
           ),

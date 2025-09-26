@@ -1,69 +1,42 @@
+import 'dart:io';
+
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/models/personal_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:isar/isar.dart';
 
-// --- Providers, Notifier e Repository (Sem alterações aqui) ---
-final personalDataRepositoryProvider = Provider<PersonalDataRepository>((ref) {
-  final isarService = ref.watch(isarServiceProvider);
-  return PersonalDataRepository(isarService);
+// --- Camada de Dados e Lógica ---
+
+// Repositório que centraliza o acesso aos dados pessoais
+final personalDataRepositoryProvider = Provider((ref) {
+  return PersonalDataRepository(ref.watch(isarServiceProvider));
 });
-
-final personalDataNotifierProvider =
-StateNotifierProvider.autoDispose<PersonalDataNotifier, AsyncValue<PersonalData?>>(
-      (ref) {
-    final repository = ref.watch(personalDataRepositoryProvider);
-    return PersonalDataNotifier(repository);
-  },
-);
-
-class PersonalDataNotifier extends StateNotifier<AsyncValue<PersonalData?>> {
-  final PersonalDataRepository _repository;
-  PersonalDataNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadPersonalData();
-  }
-  Future<void> loadPersonalData() async {
-    try {
-      state = const AsyncValue.loading();
-      final data = await _repository.getPersonalData();
-      state = AsyncValue.data(data);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-  Future<bool> savePersonalData(PersonalData data) async {
-    try {
-      state = AsyncValue.data(data);
-      await _repository.savePersonalData(data);
-      return true;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-      return false;
-    }
-  }
-}
 
 class PersonalDataRepository {
   final IsarService _isarService;
-  static const int fixedId = 1;
+  static const int _fixedId = 1;
+
   PersonalDataRepository(this._isarService);
+
   Future<PersonalData?> getPersonalData() async {
     final isar = await _isarService.db;
-    return isar.personalDatas.get(fixedId);
+    return isar.personalDatas.get(_fixedId);
   }
+
   Future<void> savePersonalData(PersonalData data) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      data.id = fixedId;
-      await isar.personalDatas.put(data);
-    });
+    await isar.writeTxn(() => isar.personalDatas.put(data..id = _fixedId));
   }
 }
 
-// --- Tela Principal (UI com Alterações) ---
+// FutureProvider para carregar os dados de forma assíncrona
+final personalDataProvider = FutureProvider.autoDispose<PersonalData?>((ref) {
+  return ref.watch(personalDataRepositoryProvider).getPersonalData();
+});
 
+// --- Tela Principal (UI) ---
 class PersonalDataScreen extends ConsumerStatefulWidget {
   const PersonalDataScreen({super.key});
 
@@ -74,76 +47,77 @@ class PersonalDataScreen extends ConsumerStatefulWidget {
 class _PersonalDataScreenState extends ConsumerState<PersonalDataScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers para os campos de texto existentes
-  late final TextEditingController _nameController;
-  late final TextEditingController _emailController;
-  //... (outros controllers)
-  late final TextEditingController _phoneController, _addressController, _linkedinController, _portfolioController, _summaryController;
+  // Controllers para os campos de texto
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _linkedinController = TextEditingController();
+  final _portfolioController = TextEditingController();
+  final _summaryController = TextEditingController();
 
-  // --- NOVAS VARIÁVEIS DE ESTADO ---
+  // Variáveis de estado para os outros campos
+  String? _photoPath;
   DateTime? _birthDate;
   bool _travelAvailability = false;
   bool _relocationAvailability = false;
   bool _hasCar = false;
   bool _hasMotorcycle = false;
   final Set<String> _selectedLicenseCategories = {};
+
+  final ImagePicker _picker = ImagePicker();
   final List<String> _allLicenseCategories = ['A', 'B', 'C', 'D', 'E', 'AB', 'AC', 'AD', 'AE'];
+
+  // Flag para controlar se houve mudanças no formulário
+  bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _phoneController = TextEditingController();
-    _addressController = TextEditingController();
-    _linkedinController = TextEditingController();
-    _portfolioController = TextEditingController();
-    _summaryController = TextEditingController();
+    // Preenche o formulário com os dados iniciais
+    ref.read(personalDataProvider.future).then((data) {
+      if (mounted && data != null) {
+        _populateFormFields(data);
+      }
+    });
+    // Adiciona listeners para detectar mudanças
+    _addAllListeners();
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _addressController.dispose();
-    _linkedinController.dispose();
-    _portfolioController.dispose();
+    _removeAllListeners();
+    _nameController.dispose(); _emailController.dispose(); _phoneController.dispose();
+    _addressController.dispose(); _linkedinController.dispose(); _portfolioController.dispose();
     _summaryController.dispose();
     super.dispose();
   }
 
-  // Função atualizada para popular TODOS os campos do formulário
-  void _populateFormFields(PersonalData? data) {
-    if (data != null) {
-      // Campos de texto existentes
-      _nameController.text = data.name ?? '';
-      _emailController.text = data.email ?? '';
-      _phoneController.text = data.phone ?? '';
-      _addressController.text = data.address ?? '';
-      _linkedinController.text = data.linkedinUrl ?? '';
-      _portfolioController.text = data.portfolioUrl ?? '';
-      _summaryController.text = data.summary ?? '';
+  void _populateFormFields(PersonalData data) {
+    _nameController.text = data.name;
+    _emailController.text = data.email;
+    _phoneController.text = data.phone ?? '';
+    _addressController.text = data.address ?? '';
+    _linkedinController.text = data.linkedinUrl ?? '';
+    _portfolioController.text = data.portfolioUrl ?? '';
+    _summaryController.text = data.summary ?? '';
 
-      // --- POPULANDO NOVOS CAMPOS ---
-      setState(() {
-        _birthDate = data.birthDate;
-        _travelAvailability = data.hasTravelAvailability;
-        _relocationAvailability = data.hasRelocationAvailability;
-        _hasCar = data.hasCar;
-        _hasMotorcycle = data.hasMotorcycle;
-        _selectedLicenseCategories.clear();
-        _selectedLicenseCategories.addAll(data.licenseCategories);
-      });
-    }
+    setState(() {
+      _photoPath = data.photoPath;
+      _birthDate = data.birthDate;
+      _travelAvailability = data.hasTravelAvailability;
+      _relocationAvailability = data.hasRelocationAvailability;
+      _hasCar = data.hasCar;
+      _hasMotorcycle = data.hasMotorcycle;
+      _selectedLicenseCategories.clear();
+      _selectedLicenseCategories.addAll(data.licenseCategories);
+    });
   }
 
-  // Função atualizada para salvar TODOS os campos
-  Future<void> _onSave() async {
+  void _onSave() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final currentData = ref.read(personalDataNotifierProvider).valueOrNull;
-      final dataToSave = (currentData ?? PersonalData())
-      // Dados existentes
+      // Cria o objeto com os dados atuais do formulário
+      final dataToSave = PersonalData()
         ..name = _nameController.text.trim()
         ..email = _emailController.text.trim()
         ..phone = _phoneController.text.trim()
@@ -151,7 +125,7 @@ class _PersonalDataScreenState extends ConsumerState<PersonalDataScreen> {
         ..linkedinUrl = _linkedinController.text.trim()
         ..portfolioUrl = _portfolioController.text.trim()
         ..summary = _summaryController.text.trim()
-      // --- SALVANDO NOVOS DADOS ---
+        ..photoPath = _photoPath
         ..birthDate = _birthDate
         ..hasTravelAvailability = _travelAvailability
         ..hasRelocationAvailability = _relocationAvailability
@@ -159,173 +133,203 @@ class _PersonalDataScreenState extends ConsumerState<PersonalDataScreen> {
         ..hasMotorcycle = _hasMotorcycle
         ..licenseCategories = _selectedLicenseCategories.toList();
 
-      final success = await ref
-          .read(personalDataNotifierProvider.notifier)
-          .savePersonalData(dataToSave);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Dados salvos com sucesso!' : 'Erro ao salvar.'),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
+      try {
+        await ref.read(personalDataRepositoryProvider).savePersonalData(dataToSave);
+        ref.invalidate(personalDataProvider); // Invalida o cache para forçar a releitura
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Dados pessoais salvos com sucesso!'),
+            backgroundColor: Colors.green,
+          ));
+          setState(() => _hasChanges = false); // Reseta o estado de "mudanças"
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erro ao salvar os dados: $e'),
+            backgroundColor: Colors.red,
+          ));
+        }
       }
     }
   }
 
-  // --- NOVA FUNÇÃO ---
-  // Função para abrir o seletor de data de nascimento
-  Future<void> _selectBirthDate(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime(2000), // Começa no ano 2000 se não houver data
-      firstDate: DateTime(1940),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != _birthDate) {
-      setState(() {
-        _birthDate = picked;
-      });
-    }
+  Future<void> _pickImage() async { /* ... (código inalterado) ... */ }
+  Future<void> _selectBirthDate(BuildContext context) async { /* ... (código inalterado) ... */ }
+
+  void _onChanged() => setState(() => _hasChanges = true);
+  void _addAllListeners() {
+    _nameController.addListener(_onChanged); _emailController.addListener(_onChanged);
+    _phoneController.addListener(_onChanged); _addressController.addListener(_onChanged);
+    _linkedinController.addListener(_onChanged); _portfolioController.addListener(_onChanged);
+    _summaryController.addListener(_onChanged);
+  }
+  void _removeAllListeners() {
+    _nameController.removeListener(_onChanged); _emailController.removeListener(_onChanged);
+    _phoneController.removeListener(_onChanged); _addressController.removeListener(_onChanged);
+    _linkedinController.removeListener(_onChanged); _portfolioController.removeListener(_onChanged);
+    _summaryController.removeListener(_onChanged);
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<PersonalData?>>(personalDataNotifierProvider,
-            (_, state) => state.whenData((data) => _populateFormFields(data)));
-    final state = ref.watch(personalDataNotifierProvider);
+    final asyncData = ref.watch(personalDataProvider);
+    final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dados Pessoais'),
-        actions: [Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: FilledButton.icon(
-            icon: const Icon(Icons.save_alt_outlined),
-            label: const Text('Salvar'),
-            onPressed: state.isLoading ? null : _onSave,
+      floatingActionButton: _hasChanges ? FloatingActionButton.extended(
+        icon: const Icon(Icons.save),
+        label: const Text('Salvar Alterações'),
+        onPressed: _onSave,
+      ) : null,
+      body: asyncData.when(
+        data: (data) => Padding(
+          padding: const EdgeInsets.only(top: 24.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  children: [
+                    // Seção da Foto
+                    _buildPhotoSection(),
+                    const Divider(height: 48),
+
+                    // Seção de Informações Básicas
+                    _buildSectionTitle('Informações de Contato'),
+                    _buildTextField(controller: _nameController, labelText: 'Nome Completo', isRequired: true),
+                    _buildTextField(controller: _emailController, labelText: 'E-mail', isRequired: true, keyboardType: TextInputType.emailAddress, isEmail: true),
+                    _buildTextField(controller: _phoneController, labelText: 'Telefone', keyboardType: TextInputType.phone),
+                    _buildTextField(controller: _addressController, labelText: 'Endereço (Cidade, Estado)'),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Data de Nascimento'),
+                      subtitle: Text(_birthDate == null ? 'Não informada' : dateFormat.format(_birthDate!)),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(context: context, initialDate: _birthDate ?? DateTime(2000), firstDate: DateTime(1940), lastDate: DateTime.now());
+                        if (picked != null && picked != _birthDate) {
+                          setState(() { _birthDate = picked; _onChanged(); });
+                        }
+                      },
+                    ),
+                    const Divider(height: 48),
+
+                    // Seção de Links
+                    _buildSectionTitle('Links Profissionais'),
+                    _buildTextField(controller: _linkedinController, labelText: 'Perfil do LinkedIn', keyboardType: TextInputType.url),
+                    _buildTextField(controller: _portfolioController, labelText: 'Portfólio ou GitHub', keyboardType: TextInputType.url),
+                    const Divider(height: 48),
+
+                    // Seção de Disponibilidade e Veículos
+                    _buildSectionTitle('Disponibilidade e Outros'),
+                    SwitchListTile(title: const Text('Disponibilidade para viagens'), value: _travelAvailability, onChanged: (v) => setState(() { _travelAvailability = v; _onChanged(); })),
+                    SwitchListTile(title: const Text('Disponibilidade para mudança'), value: _relocationAvailability, onChanged: (v) => setState(() { _relocationAvailability = v; _onChanged(); })),
+                    const SizedBox(height: 16),
+                    CheckboxListTile(title: const Text('Possui veículo próprio (Carro)'), value: _hasCar, onChanged: (v) => setState(() { _hasCar = v ?? false; _onChanged(); })),
+                    CheckboxListTile(title: const Text('Possui veículo próprio (Moto)'), value: _hasMotorcycle, onChanged: (v) => setState(() { _hasMotorcycle = v ?? false; _onChanged(); })),
+                    const SizedBox(height: 16),
+
+                    // Seção CNH
+                    Text('Carteira de Habilitação', style: Theme.of(context).textTheme.bodyLarge),
+                    Wrap(spacing: 8.0,
+                      children: _allLicenseCategories.map((cat) => FilterChip(
+                        label: Text(cat),
+                        selected: _selectedLicenseCategories.contains(cat),
+                        onSelected: (sel) => setState(() {
+                          if (sel) { _selectedLicenseCategories.add(cat); }
+                          else { _selectedLicenseCategories.remove(cat); }
+                          _onChanged();
+                        }),
+                      )).toList(),
+                    ),
+                    const Divider(height: 48),
+
+                    // Seção Resumo
+                    _buildSectionTitle('Resumo Profissional'),
+                    _buildTextField(controller: _summaryController, labelText: 'Seu resumo...', maxLines: 6),
+                    const SizedBox(height: 80), // Espaço para o FAB não cobrir
+                  ],
+                ),
+              ),
+            ),
           ),
-        )],
-      ),
-      body: state.when(
-        data: (data) => _buildForm(),
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Erro ao carregar dados: $error')),
       ),
     );
   }
 
-  Widget _buildForm() {
-    final dateFormat = DateFormat('dd/MM/yyyy');
+  // --- Widgets Auxiliares ---
 
-    return Form(key: _formKey,
-      child: SingleChildScrollView(padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 700),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              _buildTextField(/*...*/ name: 'Nome Completo', controller: _nameController, hint: '', isRequired: true),
-              _buildTextField(/*...*/ name: 'E-mail', controller: _emailController, hint: '', isRequired: true, isEmail: true),
-              _buildTextField(/*...*/ name: 'Telefone', controller: _phoneController, hint: ''),
-              _buildTextField(/*...*/ name: 'Endereço', controller: _addressController, hint: 'Ex: Cidade, Estado'),
-              const Divider(height: 32),
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+    );
+  }
 
-              // --- NOVO WIDGET: SELETOR DE DATA ---
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Data de Nascimento'),
-                subtitle: Text(_birthDate == null ? 'Não informada' : dateFormat.format(_birthDate!)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () => _selectBirthDate(context),
-              ),
-              const Divider(height: 32),
-
-              // --- NOVOS WIDGETS: SWITCHES ---
-              SwitchListTile(
-                title: const Text('Disponibilidade para viagens'),
-                value: _travelAvailability,
-                onChanged: (value) => setState(() => _travelAvailability = value),
-              ),
-              SwitchListTile(
-                title: const Text('Disponibilidade para mudança'),
-                value: _relocationAvailability,
-                onChanged: (value) => setState(() => _relocationAvailability = value),
-              ),
-              const Divider(height: 32),
-
-              // --- NOVOS WIDGETS: CHECKBOXES ---
-              CheckboxListTile(
-                title: const Text('Possui veículo próprio (Carro)'),
-                value: _hasCar,
-                onChanged: (value) => setState(() => _hasCar = value ?? false),
-              ),
-              CheckboxListTile(
-                title: const Text('Possui veículo próprio (Moto)'),
-                value: _hasMotorcycle,
-                onChanged: (value) => setState(() => _hasMotorcycle = value ?? false),
-              ),
-              const Divider(height: 32),
-
-              // --- NOVO WIDGET: CHIPS DE HABILITAÇÃO ---
-              Text('Carteira de Habilitação', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8.0,
-                children: _allLicenseCategories.map((category) => FilterChip(
-                  label: Text(category),
-                  selected: _selectedLicenseCategories.contains(category),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedLicenseCategories.add(category);
-                      } else {
-                        _selectedLicenseCategories.remove(category);
-                      }
-                    });
-                  },
-                )).toList(),
-              ),
-
-              const Divider(height: 32),
-              _buildTextField(/*...*/ name: 'Perfil do LinkedIn', controller: _linkedinController, hint: ''),
-              _buildTextField(/*...*/ name: 'Portfólio ou Site Pessoal', controller: _portfolioController, hint: ''),
-              _buildTextField(/*...*/ name: 'Resumo Profissional', controller: _summaryController, hint: '', maxLines: 5),
-            ],
-            ),
+  Widget _buildPhotoSection() {
+    return Center(
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 60,
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            backgroundImage: _photoPath != null ? FileImage(File(_photoPath!)) : null,
+            child: _photoPath == null ? Icon(Icons.person, size: 60, color: Theme.of(context).colorScheme.onPrimaryContainer) : null,
           ),
-        ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Selecionar Foto'),
+                onPressed: () async {
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                  if (image != null) {
+                    setState(() { _photoPath = image.path; _onChanged(); });
+                  }
+                },
+              ),
+              if (_photoPath != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  color: Theme.of(context).colorScheme.error,
+                  tooltip: 'Remover Foto',
+                  onPressed: () => setState(() { _photoPath = null; _onChanged(); }),
+                )
+              ],
+            ],
+          )
+        ],
       ),
     );
   }
 
-  // Widget auxiliar refatorado para simplicidade
   Widget _buildTextField({
-    required TextEditingController controller,
-    required String name,
-    required String hint,
-    int? maxLines = 1,
-    bool isRequired = false,
-    bool isEmail = false,
+    required TextEditingController controller, required String labelText,
+    int? maxLines = 1, TextInputType? keyboardType, bool isRequired = false, bool isEmail = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
+        controller: controller, maxLines: maxLines, keyboardType: keyboardType,
         decoration: InputDecoration(
-          labelText: name,
-          hintText: hint,
-          border: const OutlineInputBorder(),
+          labelText: labelText, border: const OutlineInputBorder(),
           alignLabelWithHint: true,
         ),
         validator: (value) {
           if (isRequired && (value == null || value.trim().isEmpty)) {
-            return 'O campo "$name" é obrigatório.';
+            return 'Este campo é obrigatório.';
           }
-          if (isEmail && value != null && value.isNotEmpty) {
-            final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-            if (!emailRegex.hasMatch(value)) {
-              return 'Formato de e-mail inválido.';
-            }
+          if (isEmail && value != null && value.isNotEmpty && !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+            return 'Formato de e-mail inválido.';
           }
           return null;
         },

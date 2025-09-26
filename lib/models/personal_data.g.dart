@@ -72,13 +72,18 @@ const PersonalDataSchema = CollectionSchema(
       name: r'phone',
       type: IsarType.string,
     ),
-    r'portfolioUrl': PropertySchema(
+    r'photoPath': PropertySchema(
       id: 11,
+      name: r'photoPath',
+      type: IsarType.string,
+    ),
+    r'portfolioUrl': PropertySchema(
+      id: 12,
       name: r'portfolioUrl',
       type: IsarType.string,
     ),
     r'summary': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'summary',
       type: IsarType.string,
     )
@@ -123,12 +128,7 @@ int _personalDataEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.email;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.email.length * 3;
   bytesCount += 3 + object.licenseCategories.length * 3;
   {
     for (var i = 0; i < object.licenseCategories.length; i++) {
@@ -142,14 +142,15 @@ int _personalDataEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.name.length * 3;
   {
-    final value = object.name;
+    final value = object.phone;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
   {
-    final value = object.phone;
+    final value = object.photoPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -186,8 +187,9 @@ void _personalDataSerialize(
   writer.writeString(offsets[8], object.linkedinUrl);
   writer.writeString(offsets[9], object.name);
   writer.writeString(offsets[10], object.phone);
-  writer.writeString(offsets[11], object.portfolioUrl);
-  writer.writeString(offsets[12], object.summary);
+  writer.writeString(offsets[11], object.photoPath);
+  writer.writeString(offsets[12], object.portfolioUrl);
+  writer.writeString(offsets[13], object.summary);
 }
 
 PersonalData _personalDataDeserialize(
@@ -199,7 +201,7 @@ PersonalData _personalDataDeserialize(
   final object = PersonalData();
   object.address = reader.readStringOrNull(offsets[0]);
   object.birthDate = reader.readDateTimeOrNull(offsets[1]);
-  object.email = reader.readStringOrNull(offsets[2]);
+  object.email = reader.readString(offsets[2]);
   object.hasCar = reader.readBool(offsets[3]);
   object.hasMotorcycle = reader.readBool(offsets[4]);
   object.hasRelocationAvailability = reader.readBool(offsets[5]);
@@ -207,10 +209,11 @@ PersonalData _personalDataDeserialize(
   object.id = id;
   object.licenseCategories = reader.readStringList(offsets[7]) ?? [];
   object.linkedinUrl = reader.readStringOrNull(offsets[8]);
-  object.name = reader.readStringOrNull(offsets[9]);
+  object.name = reader.readString(offsets[9]);
   object.phone = reader.readStringOrNull(offsets[10]);
-  object.portfolioUrl = reader.readStringOrNull(offsets[11]);
-  object.summary = reader.readStringOrNull(offsets[12]);
+  object.photoPath = reader.readStringOrNull(offsets[11]);
+  object.portfolioUrl = reader.readStringOrNull(offsets[12]);
+  object.summary = reader.readStringOrNull(offsets[13]);
   return object;
 }
 
@@ -226,7 +229,7 @@ P _personalDataDeserializeProp<P>(
     case 1:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
@@ -240,12 +243,14 @@ P _personalDataDeserializeProp<P>(
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -351,28 +356,8 @@ extension PersonalDataQueryWhere
     });
   }
 
-  QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'email',
-        value: [null],
-      ));
-    });
-  }
-
-  QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'email',
-        lower: [null],
-        includeLower: false,
-        upper: [],
-      ));
-    });
-  }
-
   QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailEqualTo(
-      String? email) {
+      String email) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
         indexName: r'email',
@@ -382,7 +367,7 @@ extension PersonalDataQueryWhere
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailNotEqualTo(
-      String? email) {
+      String email) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -417,7 +402,7 @@ extension PersonalDataQueryWhere
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailGreaterThan(
-    String? email, {
+    String email, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -431,7 +416,7 @@ extension PersonalDataQueryWhere
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailLessThan(
-    String? email, {
+    String email, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -445,8 +430,8 @@ extension PersonalDataQueryWhere
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterWhereClause> emailBetween(
-    String? lowerEmail,
-    String? upperEmail, {
+    String lowerEmail,
+    String upperEmail, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
@@ -739,26 +724,8 @@ extension PersonalDataQueryFilter
     });
   }
 
-  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
-      emailIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'email',
-      ));
-    });
-  }
-
-  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
-      emailIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'email',
-      ));
-    });
-  }
-
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> emailEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -772,7 +739,7 @@ extension PersonalDataQueryFilter
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
       emailGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -787,7 +754,7 @@ extension PersonalDataQueryFilter
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> emailLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -802,8 +769,8 @@ extension PersonalDataQueryFilter
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> emailBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1365,25 +1332,8 @@ extension PersonalDataQueryFilter
     });
   }
 
-  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> nameIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'name',
-      ));
-    });
-  }
-
-  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
-      nameIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'name',
-      ));
-    });
-  }
-
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> nameEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1397,7 +1347,7 @@ extension PersonalDataQueryFilter
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
       nameGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1412,7 +1362,7 @@ extension PersonalDataQueryFilter
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> nameLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1427,8 +1377,8 @@ extension PersonalDataQueryFilter
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> nameBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1663,6 +1613,160 @@ extension PersonalDataQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'phone',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'photoPath',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'photoPath',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'photoPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'photoPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'photoPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      photoPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'photoPath',
         value: '',
       ));
     });
@@ -2111,6 +2215,18 @@ extension PersonalDataQuerySortBy
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByPhotoPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'photoPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByPhotoPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'photoPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByPortfolioUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'portfolioUrl', Sort.asc);
@@ -2277,6 +2393,18 @@ extension PersonalDataQuerySortThenBy
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByPhotoPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'photoPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByPhotoPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'photoPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByPortfolioUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'portfolioUrl', Sort.asc);
@@ -2380,6 +2508,13 @@ extension PersonalDataQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QDistinct> distinctByPhotoPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'photoPath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QDistinct> distinctByPortfolioUrl(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2415,7 +2550,7 @@ extension PersonalDataQueryProperty
     });
   }
 
-  QueryBuilder<PersonalData, String?, QQueryOperations> emailProperty() {
+  QueryBuilder<PersonalData, String, QQueryOperations> emailProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'email');
     });
@@ -2460,7 +2595,7 @@ extension PersonalDataQueryProperty
     });
   }
 
-  QueryBuilder<PersonalData, String?, QQueryOperations> nameProperty() {
+  QueryBuilder<PersonalData, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
     });
@@ -2469,6 +2604,12 @@ extension PersonalDataQueryProperty
   QueryBuilder<PersonalData, String?, QQueryOperations> phoneProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'phone');
+    });
+  }
+
+  QueryBuilder<PersonalData, String?, QQueryOperations> photoPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'photoPath');
     });
   }
 

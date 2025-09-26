@@ -17,13 +17,18 @@ const LanguageSchema = CollectionSchema(
   name: r'Language',
   id: -2011595345252117802,
   properties: {
-    r'languageName': PropertySchema(
+    r'isFeatured': PropertySchema(
       id: 0,
+      name: r'isFeatured',
+      type: IsarType.bool,
+    ),
+    r'languageName': PropertySchema(
+      id: 1,
       name: r'languageName',
       type: IsarType.string,
     ),
     r'proficiency': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'proficiency',
       type: IsarType.byte,
       enumMap: _LanguageproficiencyEnumValueMap,
@@ -34,7 +39,21 @@ const LanguageSchema = CollectionSchema(
   deserialize: _languageDeserialize,
   deserializeProp: _languageDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'languageName': IndexSchema(
+      id: -7157913319940412746,
+      name: r'languageName',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'languageName',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _languageGetId,
@@ -49,12 +68,7 @@ int _languageEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  {
-    final value = object.languageName;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.languageName.length * 3;
   return bytesCount;
 }
 
@@ -64,8 +78,9 @@ void _languageSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.languageName);
-  writer.writeByte(offsets[1], object.proficiency.index);
+  writer.writeBool(offsets[0], object.isFeatured);
+  writer.writeString(offsets[1], object.languageName);
+  writer.writeByte(offsets[2], object.proficiency.index);
 }
 
 Language _languageDeserialize(
@@ -76,9 +91,10 @@ Language _languageDeserialize(
 ) {
   final object = Language();
   object.id = id;
-  object.languageName = reader.readStringOrNull(offsets[0]);
+  object.isFeatured = reader.readBool(offsets[0]);
+  object.languageName = reader.readString(offsets[1]);
   object.proficiency =
-      _LanguageproficiencyValueEnumMap[reader.readByteOrNull(offsets[1])] ??
+      _LanguageproficiencyValueEnumMap[reader.readByteOrNull(offsets[2])] ??
           LanguageProficiency.basic;
   return object;
 }
@@ -91,8 +107,10 @@ P _languageDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
       return (_LanguageproficiencyValueEnumMap[reader.readByteOrNull(offset)] ??
           LanguageProficiency.basic) as P;
     default:
@@ -131,6 +149,14 @@ extension LanguageQueryWhereSort on QueryBuilder<Language, Language, QWhere> {
   QueryBuilder<Language, Language, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhere> anyLanguageName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'languageName'),
+      );
     });
   }
 }
@@ -200,6 +226,142 @@ extension LanguageQueryWhere on QueryBuilder<Language, Language, QWhereClause> {
       ));
     });
   }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameEqualTo(
+      String languageName) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'languageName',
+        value: [languageName],
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameNotEqualTo(
+      String languageName) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'languageName',
+              lower: [],
+              upper: [languageName],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'languageName',
+              lower: [languageName],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'languageName',
+              lower: [languageName],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'languageName',
+              lower: [],
+              upper: [languageName],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameGreaterThan(
+    String languageName, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'languageName',
+        lower: [languageName],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameLessThan(
+    String languageName, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'languageName',
+        lower: [],
+        upper: [languageName],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameBetween(
+    String lowerLanguageName,
+    String upperLanguageName, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'languageName',
+        lower: [lowerLanguageName],
+        includeLower: includeLower,
+        upper: [upperLanguageName],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameStartsWith(
+      String LanguageNamePrefix) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'languageName',
+        lower: [LanguageNamePrefix],
+        upper: ['$LanguageNamePrefix\u{FFFFF}'],
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'languageName',
+        value: [''],
+      ));
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterWhereClause> languageNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'languageName',
+              upper: [''],
+            ))
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'languageName',
+              lower: [''],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'languageName',
+              lower: [''],
+            ))
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'languageName',
+              upper: [''],
+            ));
+      }
+    });
+  }
 }
 
 extension LanguageQueryFilter
@@ -256,25 +418,18 @@ extension LanguageQueryFilter
     });
   }
 
-  QueryBuilder<Language, Language, QAfterFilterCondition> languageNameIsNull() {
+  QueryBuilder<Language, Language, QAfterFilterCondition> isFeaturedEqualTo(
+      bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'languageName',
-      ));
-    });
-  }
-
-  QueryBuilder<Language, Language, QAfterFilterCondition>
-      languageNameIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'languageName',
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFeatured',
+        value: value,
       ));
     });
   }
 
   QueryBuilder<Language, Language, QAfterFilterCondition> languageNameEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -288,7 +443,7 @@ extension LanguageQueryFilter
 
   QueryBuilder<Language, Language, QAfterFilterCondition>
       languageNameGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -303,7 +458,7 @@ extension LanguageQueryFilter
   }
 
   QueryBuilder<Language, Language, QAfterFilterCondition> languageNameLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -318,8 +473,8 @@ extension LanguageQueryFilter
   }
 
   QueryBuilder<Language, Language, QAfterFilterCondition> languageNameBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -469,6 +624,18 @@ extension LanguageQueryLinks
     on QueryBuilder<Language, Language, QFilterCondition> {}
 
 extension LanguageQuerySortBy on QueryBuilder<Language, Language, QSortBy> {
+  QueryBuilder<Language, Language, QAfterSortBy> sortByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterSortBy> sortByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Language, Language, QAfterSortBy> sortByLanguageName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'languageName', Sort.asc);
@@ -508,6 +675,18 @@ extension LanguageQuerySortThenBy
     });
   }
 
+  QueryBuilder<Language, Language, QAfterSortBy> thenByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Language, Language, QAfterSortBy> thenByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Language, Language, QAfterSortBy> thenByLanguageName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'languageName', Sort.asc);
@@ -535,6 +714,12 @@ extension LanguageQuerySortThenBy
 
 extension LanguageQueryWhereDistinct
     on QueryBuilder<Language, Language, QDistinct> {
+  QueryBuilder<Language, Language, QDistinct> distinctByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFeatured');
+    });
+  }
+
   QueryBuilder<Language, Language, QDistinct> distinctByLanguageName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -557,7 +742,13 @@ extension LanguageQueryProperty
     });
   }
 
-  QueryBuilder<Language, String?, QQueryOperations> languageNameProperty() {
+  QueryBuilder<Language, bool, QQueryOperations> isFeaturedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFeatured');
+    });
+  }
+
+  QueryBuilder<Language, String, QQueryOperations> languageNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'languageName');
     });

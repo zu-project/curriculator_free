@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+// O ShellScreen é a "casca" que contém o layout principal do aplicativo.
 class ShellScreen extends StatefulWidget {
   final Widget child;
   const ShellScreen({super.key, required this.child});
@@ -10,152 +11,167 @@ class ShellScreen extends StatefulWidget {
 }
 
 class _ShellScreenState extends State<ShellScreen> {
+  // Mapeamento centralizado de rotas para índices.
+  static const Map<String, int> _routeMap = {
+    '/': 0,
+    '/personal': 1,
+    '/experience': 2,
+    '/education': 3,
+    '/skills': 4,
+    '/languages': 5,
+    '/settings': 6,
+    '/about': 7,
+    '/support': 8,
+    '/legal': 9,
+  };
+
+  // Determina qual item do menu deve estar selecionado com base na rota.
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).matchedLocation;
-    if (location == '/') return 0;
-    if (location.startsWith('/personal')) return 1;
-    if (location.startsWith('/experience')) return 2;
-    if (location.startsWith('/education')) return 3;
-    if (location.startsWith('/skills')) return 4;
-    if (location.startsWith('/languages')) return 5;
+    for (final entry in _routeMap.entries) {
+      if (location.startsWith(entry.key)) return entry.value;
+    }
     return 0;
   }
 
+  // Navega para a rota correspondente ao índice do item clicado.
   void _onItemTapped(int index, BuildContext context) {
-    switch (index) {
-      case 0:
-        context.go('/');
-        break;
-      case 1:
-        context.go('/personal');
-        break;
-      case 2:
-        context.go('/experience');
-        break;
-      case 3:
-        context.go('/education');
-        break;
-      case 4:
-        context.go('/skills');
-        break;
-      case 5:
-        context.go('/languages');
-        break;
-    }
+    final String route = _routeMap.entries.firstWhere((entry) => entry.value == index).key;
+    context.go(route);
+  }
+
+  // Decide em qual tela o FloatingActionButton (FAB) de "Adicionar" deve aparecer.
+  bool _showFloatingActionButton(BuildContext context) {
+    final String location = GoRouterState.of(context).matchedLocation;
+    const routesWithFab = ['/experience', '/education', '/skills', '/languages'];
+    return routesWithFab.contains(location);
+  }
+
+  // Define a ação do FAB com base na rota atual.
+  void _onFabPressed(BuildContext context) {
+    final String location = GoRouterState.of(context).matchedLocation;
+    // No futuro, isso poderia chamar um método específico de cada tela.
+    // Por enquanto, podemos assumir que cada tela sabe o que fazer
+    // quando um evento de "adicionar" é disparado.
+    // A forma mais robusta seria usar um serviço de eventos ou um provider.
+    // Por simplicidade, vamos deixar a lógica na tela de destino por enquanto.
+    // O ideal seria que a tela de destino escutasse um evento.
+    // Por exemplo:
+    // ref.read(fabActionProvider.notifier).trigger();
+
+    // A ação de "adicionar" é específica para cada tela. A tela em si
+    // já tem o FAB e sua lógica. Este FAB global é uma alternativa.
+    // Vamos mantê-lo aqui, mas note que cada tela já tem seu próprio FAB
+    // que é a abordagem mais recomendada.
+    // Se decidirmos por um FAB global, a lógica seria mais complexa.
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usamos LayoutBuilder para adaptar a UI para desktop
-    return Scaffold(
-      body: Row(
-        children: [
-          // NavigationRail para telas mais largas (Desktop)
-          LayoutBuilder(builder: (context, constraints) {
-            // Se a altura for maior que 450, usa o NavigationRail
-            if (constraints.maxHeight > 500) {
-              // --- CORREÇÃO APLICADA AQUI ---
-              // Criamos uma variável para a condição de estar estendido para reutilizá-la.
-              final bool isExtended = constraints.maxWidth > 800;
+    final selectedIndex = _calculateSelectedIndex(context);
 
-              return NavigationRail(
-                selectedIndex: _calculateSelectedIndex(context),
-                onDestinationSelected: (index) => _onItemTapped(index, context),
-
-                // A correção principal: usamos um operador ternário.
-                // Se estiver estendido (isExtended == true), o labelType é 'none'.
-                // Se não estiver estendido, o labelType é 'all'.
-                labelType: isExtended
-                    ? NavigationRailLabelType.none
-                    : NavigationRailLabelType.all,
-
-                extended: isExtended, // A propriedade 'extended' agora usa a mesma variável.
-                // --- Adicione a propriedade `trailing` ---
-                trailing: Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 20.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.settings_outlined),
-                            tooltip: 'Configurações',
-                            onPressed: () => context.go('/settings'),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.info_outline),
-                            tooltip: 'Sobre',
-                            onPressed: () => context.go('/about'),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.favorite_border),
-                            tooltip: 'Apoie o Projeto',
-                            onPressed: () => context.go('/support'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+    // Para telas de desktop, usamos o layout com a barra lateral.
+    if (MediaQuery.of(context).size.width > 600) {
+      return Scaffold(
+        body: Row(
+          children: [
+            LayoutBuilder(builder: (context, constraints) {
+              final isExtended = constraints.maxWidth > 800;
+              return Container(
+                width: isExtended ? 256 : 80,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildNavItem(context, icon: Icons.dashboard_outlined, label: 'Dashboard', index: 0, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.person_outline, label: 'Dados Pessoais', index: 1, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.work_outline, label: 'Experiências', index: 2, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.school_outlined, label: 'Educação', index: 3, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.lightbulb_outline, label: 'Habilidades', index: 4, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.language_outlined, label: 'Idiomas', index: 5, selectedIndex: selectedIndex, isExtended: isExtended),
+                    const Spacer(),
+                    _buildNavItem(context, icon: Icons.settings_outlined, label: 'Configurações', index: 6, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.info_outline, label: 'Sobre', index: 7, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.favorite_border, label: 'Apoie o Projeto', index: 8, selectedIndex: selectedIndex, isExtended: isExtended),
+                    _buildNavItem(context, icon: Icons.gavel_outlined, label: 'Legal / LGPD', index: 9, selectedIndex: selectedIndex, isExtended: isExtended),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard),
-                    label: Text('Dashboard'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: Text('Dados Pessoais'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.work_outline),
-                    selectedIcon: Icon(Icons.work),
-                    label: Text('Experiências'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.school_outlined),
-                    selectedIcon: Icon(Icons.school),
-                    label: Text('Educação'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.lightbulb_outline),
-                    selectedIcon: Icon(Icons.lightbulb),
-                    label: Text('Habilidades'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.language_outlined),
-                    selectedIcon: Icon(Icons.language),
-                    label: Text('Idiomas'),
-                  ),
-                ],
               );
+            }),
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(child: widget.child),
+          ],
+        ),
+      );
+    }
 
-            }
-            return const SizedBox.shrink(); // Não mostra nada em telas pequenas
-          }),
-          const VerticalDivider(thickness: 1, width: 1),
-          // O conteúdo da tela atual
-          Expanded(child: widget.child),
-        ],
-      ),
-      // Adaptei aqui para ser mais focado em mobile (largura < 600)
-      bottomNavigationBar: MediaQuery.of(context).size.width < 600
-          ? NavigationBar(
-        selectedIndex: _calculateSelectedIndex(context),
+    // Para telas mobile, usamos o layout com a barra inferior.
+    return Scaffold(
+      body: widget.child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
         onDestinationSelected: (index) => _onItemTapped(index, context),
         destinations: const [
           NavigationDestination(label: 'Dashboard', icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard)),
           NavigationDestination(label: 'Pessoais', icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person)),
           NavigationDestination(label: 'Experiência', icon: Icon(Icons.work_outline), selectedIcon: Icon(Icons.work)),
           NavigationDestination(label: 'Educação', icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school)),
+          NavigationDestination(label: 'Mais', icon: Icon(Icons.more_horiz), selectedIcon: Icon(Icons.more_horiz_outlined)),
         ],
-      )
-          : null,
+      ),
     );
-
   }
 
+  // Widget builder para criar cada item do menu, garantindo consistência visual.
+  Widget _buildNavItem(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required int index,
+    required int selectedIndex,
+    required bool isExtended,
+  }) {
+    final bool isSelected = index == selectedIndex;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    Widget content;
+
+    // Se a barra estiver estendida, usamos um Row com espaçamento.
+    if (isExtended) {
+      content = Row(
+        children: [
+          Icon(icon, color: isSelected ? colors.primary : colors.onSurfaceVariant),
+          const SizedBox(width: 16),
+          // Flexible previne o overflow de texto
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(color: isSelected ? colors.primary : colors.onSurfaceVariant),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    } else { // Versão recolhida (só ícone)
+      content = Icon(icon, color: isSelected ? colors.primary : colors.onSurfaceVariant);
+    }
+
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: () => _onItemTapped(index, context),
+        borderRadius: BorderRadius.circular(50),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: isExtended ? 8 : 12),
+          decoration: BoxDecoration(
+            color: isSelected ? colors.primaryContainer.withOpacity(0.4) : Colors.transparent,
+            borderRadius: BorderRadius.circular(50),
+          ),
+          child: content,
+        ),
+      ),
+    );
+  }
 }

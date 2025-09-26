@@ -4,52 +4,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 
-// --- Providers (Gerenciamento de Estado com Riverpod) ---
+// --- Providers e Repositório (Lógica de Dados) ---
 
-// 1. Provider que fornece o repositório (a lógica de acesso ao banco de dados).
-// Ele depende do serviço do Isar que já criamos.
 final skillsRepositoryProvider = Provider<SkillsRepository>((ref) {
   final isarService = ref.watch(isarServiceProvider);
   return SkillsRepository(isarService);
 });
 
-// 2. Provider que busca a lista de habilidades de forma assíncrona.
-// Ele assiste ao repositório e automaticamente re-busca os dados
-// quando invalidado, mantendo a UI sempre atualizada.
 final skillsStreamProvider = StreamProvider.autoDispose<List<Skill>>((ref) {
   final skillsRepository = ref.watch(skillsRepositoryProvider);
-  return skillsRepository.watchSkills();
+  return skillsRepository.watchAllSkills();
 });
 
-// --- Repositório (Lógica de Dados) ---
-
-// Classe responsável por toda a comunicação com o banco de dados Isar
-// relacionada a habilidades (Skills).
 class SkillsRepository {
   final IsarService _isarService;
-
   SkillsRepository(this._isarService);
 
-  // Assiste a mudanças na coleção de Skills e emite uma nova lista quando há alterações.
-  Stream<List<Skill>> watchSkills() async* {
+  // Assiste a mudanças, ordenando por tipo e depois por nome.
+  Stream<List<Skill>> watchAllSkills() async* {
     final isar = await _isarService.db;
-    yield* isar.skills.where().sortByName().watch(fireImmediately: true);
+    yield* isar.skills.where().sortByType().thenByName().watch(fireImmediately: true);
   }
 
-  // Adiciona ou atualiza uma habilidade no banco de dados.
   Future<void> saveSkill(Skill skill) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.skills.put(skill);
-    });
+    await isar.writeTxn(() => isar.skills.put(skill));
   }
 
-  // Deleta uma habilidade pelo seu ID.
   Future<void> deleteSkill(int skillId) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.skills.delete(skillId);
-    });
+    await isar.writeTxn(() => isar.skills.delete(skillId));
   }
 }
 
@@ -60,185 +44,112 @@ class SkillsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Assiste ao provider do stream para obter o estado atual (carregando, com dados ou com erro).
     final skillsAsyncValue = ref.watch(skillsStreamProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minhas Habilidades'),
-      ),
-      body: Center(
+    return Padding(
+      padding: const EdgeInsets.only(top: 24.0),
+      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          // `when` é a forma segura de lidar com estados assíncronos no Riverpod.
           child: skillsAsyncValue.when(
             data: (skills) {
               if (skills.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'Nenhuma habilidade cadastrada ainda.\nClique em "+" para adicionar a primeira.',
-                    textAlign: TextAlign.center,
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Nenhuma habilidade cadastrada ainda.',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Adicionar Primeira Habilidade'),
+                        onPressed: () => _showSkillDialog(context, ref),
+                      ),
+                    ],
                   ),
                 );
               }
-              // Se há dados, constrói a lista.
-              return ListView.builder(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                itemCount: skills.length,
-                itemBuilder: (context, index) {
-                  final skill = skills[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      title: Text(skill.name ?? 'Habilidade sem nome'),
-                      subtitle: Text('Nível: ${skill.level.name}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            tooltip: 'Editar Habilidade',
-                            onPressed: () {
-                              _showSkillDialog(context, ref, skill: skill);
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete_outline,
-                                color: Theme.of(context).colorScheme.error),
-                            tooltip: 'Excluir Habilidade',
-                            onPressed: () {
-                              _showDeleteConfirmationDialog(context, ref, skill);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+
+              // Separa as habilidades em duas listas
+              final hardSkills = skills.where((s) => s.type == SkillType.hardSkill).toList();
+              final softSkills = skills.where((s) => s.type == SkillType.softSkill).toList();
+
+              return ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                children: [
+                  _buildSkillSection(context, ref, 'Hard Skills (Técnicas)', hardSkills),
+                  const SizedBox(height: 24),
+                  _buildSkillSection(context, ref, 'Soft Skills (Comportamentais)', softSkills),
+                  const SizedBox(height: 80), // Espaço para o FloatingActionButton
+                ],
               );
             },
             loading: () => const CircularProgressIndicator(),
-            error: (error, stackTrace) =>
-                Text('Ocorreu um erro: $error'),
+            error: (error, stackTrace) => Text('Ocorreu um erro: $error'),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar Habilidade'),
-        onPressed: () {
-          // Chama o diálogo para criar uma nova habilidade (sem passar um 'skill' existente).
-          _showSkillDialog(context, ref);
-        },
+    );
+  }
+
+  // Constrói uma seção expansível para cada tipo de habilidade
+  Widget _buildSkillSection(BuildContext context, WidgetRef ref, String title, List<Skill> skills) {
+    return Card(
+      elevation: 2,
+      child: ExpansionTile(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        initiallyExpanded: true,
+        children: skills.isNotEmpty
+            ? skills.map((skill) => _buildSkillListTile(context, ref, skill)).toList()
+            : [const ListTile(title: Text('Nenhuma habilidade deste tipo cadastrada.'))],
       ),
     );
   }
 
-  // --- Funções de UI (Diálogos) ---
-
-  // Função para mostrar o diálogo de adicionar/editar habilidade.
-  void _showSkillDialog(BuildContext context, WidgetRef ref, {Skill? skill}) {
-    // Se `skill` não for nulo, estamos editando. Senão, criando um novo.
-    final isEditing = skill != null;
-    final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: skill?.name);
-    SkillLevel selectedLevel = skill?.level ?? SkillLevel.intermediate;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(isEditing ? 'Editar Habilidade' : 'Nova Habilidade'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome da Habilidade',
-                    hintText: 'Ex: Flutter, Gestão de Projetos, Inglês',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, insira o nome da habilidade.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Usamos um `StatefulBuilder` para que o dropdown possa atualizar
-                // seu próprio estado dentro do diálogo.
-                StatefulBuilder(
-                  builder: (context, setState) {
-                    return DropdownButtonFormField<SkillLevel>(
-                      value: selectedLevel,
-                      decoration: const InputDecoration(
-                        labelText: 'Nível de Proficiência',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: SkillLevel.values.map((level) {
-                        return DropdownMenuItem(
-                          value: level,
-                          child: Text(level.name),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => selectedLevel = value);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
+  // Constrói o item da lista para uma única habilidade
+  Widget _buildSkillListTile(BuildContext context, WidgetRef ref, Skill skill) {
+    return ListTile(
+      leading: skill.isFeatured ? const Icon(Icons.star, color: Colors.amber) : const Icon(Icons.circle, size: 8),
+      title: Text(skill.name),
+      subtitle: Text('Nível: ${skill.level.name}'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Editar Habilidade',
+            onPressed: () => _showSkillDialog(context, ref, skill: skill),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final newOrUpdatedSkill =
-                  (skill ?? Skill()) // Se editando, usa o objeto existente.
-                    ..name = nameController.text.trim()
-                    ..level = selectedLevel;
-
-                  // Pega o repositório e chama o método para salvar.
-                  ref.read(skillsRepositoryProvider).saveSkill(newOrUpdatedSkill);
-
-                  // O `skillsStreamProvider` vai se atualizar automaticamente.
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        );
-      },
+          IconButton(
+            icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+            tooltip: 'Excluir Habilidade',
+            onPressed: () => _showDeleteConfirmationDialog(context, ref, skill),
+          ),
+        ],
+      ),
     );
   }
 
-  // Diálogo de confirmação para exclusão.
-  void _showDeleteConfirmationDialog(
-      BuildContext context, WidgetRef ref, Skill skill) {
+  // Funções para mostrar os diálogos
+  void _showSkillDialog(BuildContext context, WidgetRef ref, {Skill? skill}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _SkillFormDialog(skillToEdit: skill),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref, Skill skill) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Exclusão'),
-        content: Text(
-            'Você tem certeza que deseja excluir a habilidade "${skill.name}"?'),
+        content: Text('Você tem certeza que deseja excluir a habilidade "${skill.name}"?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
           FilledButton.tonal(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.errorContainer,
@@ -252,6 +163,138 @@ class SkillsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Widget para o formulário de diálogo, para manter o estado local
+class _SkillFormDialog extends ConsumerStatefulWidget {
+  final Skill? skillToEdit;
+  const _SkillFormDialog({this.skillToEdit});
+
+  @override
+  ConsumerState<_SkillFormDialog> createState() => _SkillFormDialogState();
+}
+
+class _SkillFormDialogState extends ConsumerState<_SkillFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late SkillType _selectedType;
+  late SkillLevel _selectedLevel;
+  late bool _isFeatured;
+
+  @override
+  void initState() {
+    super.initState();
+    final skill = widget.skillToEdit;
+    _nameController = TextEditingController(text: skill?.name);
+    _selectedType = skill?.type ?? SkillType.hardSkill;
+    _selectedLevel = skill?.level ?? SkillLevel.intermediate;
+    _isFeatured = skill?.isFeatured ?? false;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _onSave() {
+    if (_formKey.currentState!.validate()) {
+      final newOrUpdatedSkill = (widget.skillToEdit ?? Skill())
+        ..name = _nameController.text.trim()
+        ..type = _selectedType
+        ..level = _selectedLevel
+        ..isFeatured = _isFeatured;
+
+      ref.read(skillsRepositoryProvider).saveSkill(newOrUpdatedSkill);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.skillToEdit != null;
+    return AlertDialog(
+      title: Text(isEditing ? 'Editar Habilidade' : 'Nova Habilidade'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome da Habilidade',
+                  hintText: 'Ex: Flutter, Gestão de Projetos',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                (value == null || value
+                    .trim()
+                    .isEmpty) ? 'Por favor, insira o nome.' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<SkillType>(
+                value: _selectedType,
+                decoration: const InputDecoration(
+                    labelText: 'Tipo de Habilidade',
+                    border: OutlineInputBorder()),
+                items: SkillType.values
+                    .map((type) =>
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(type == SkillType.hardSkill
+                          ? 'Hard Skill (Técnica)'
+                          : 'Soft Skill (Comportamental)'),
+                    ))
+                    .toList(), // A vírgula antes do .toList() é importante.
+                onChanged: (value) =>
+                    setState(() =>
+                    _selectedType = value ?? SkillType.hardSkill),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<SkillLevel>(
+                value: _selectedLevel,
+                decoration: const InputDecoration(
+                    labelText: 'Nível de Proficiência',
+                    border: OutlineInputBorder()),
+                // --- CORREÇÃO APLICADA AQUI ---
+                // A vírgula (,) foi adicionada antes do .toList()
+                items: SkillLevel.values
+                    .map((level) =>
+                    DropdownMenuItem(
+                      value: level,
+                      child: Text(level.name[0].toUpperCase() +
+                          level.name.substring(1)),
+                    ))
+                    .toList(), // Esta chamada ao .toList() agora está correta.
+                onChanged: (value) =>
+                    setState(
+                            () =>
+                        _selectedLevel = value ?? SkillLevel.intermediate),
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Marcar como destaque'),
+                subtitle:
+                const Text('Dá ênfase a esta habilidade no currículo.'),
+                value: _isFeatured,
+                onChanged: (value) =>
+                    setState(() => _isFeatured = value ?? false),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar')),
+        ElevatedButton(onPressed: _onSave, child: const Text('Salvar')),
+      ],
     );
   }
 }

@@ -6,34 +6,24 @@ import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 
-// --- Providers (Gerenciamento de Estado com Riverpod) ---
+// --- Camada de Dados e Lógica ---
 
-// 1. Provider para o Repositório, que lida com a lógica de acesso ao banco de dados.
 final educationRepositoryProvider = Provider<EducationRepository>((ref) {
   final isarService = ref.watch(isarServiceProvider);
   return EducationRepository(isarService);
 });
 
-// 2. StreamProvider para observar a lista de formações em tempo real.
-// Qualquer widget que assistir a este provider será reconstruído
-// automaticamente quando os dados no banco de dados mudarem.
 final educationStreamProvider =
 StreamProvider.autoDispose<List<Education>>((ref) {
   final educationRepository = ref.watch(educationRepositoryProvider);
-  return educationRepository.watchEducations();
+  return educationRepository.watchAllEducations();
 });
 
-
-// --- Repositório (Lógica de Dados) ---
-
-// Classe responsável por toda a comunicação com a coleção 'Education' no Isar.
 class EducationRepository {
   final IsarService _isarService;
-
   EducationRepository(this._isarService);
 
-  // Observa a coleção, ordenando da data de início mais recente para a mais antiga.
-  Stream<List<Education>> watchEducations() async* {
+  Stream<List<Education>> watchAllEducations() async* {
     final isar = await _isarService.db;
     yield* isar.educations
         .where()
@@ -41,23 +31,16 @@ class EducationRepository {
         .watch(fireImmediately: true);
   }
 
-  // Salva (cria ou atualiza) uma formação acadêmica no banco de dados.
   Future<void> saveEducation(Education education) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.educations.put(education);
-    });
+    await isar.writeTxn(() => isar.educations.put(education));
   }
 
-  // Deleta uma formação do banco de dados pelo seu ID.
   Future<void> deleteEducation(int educationId) async {
     final isar = await _isarService.db;
-    await isar.writeTxn(() async {
-      await isar.educations.delete(educationId);
-    });
+    await isar.writeTxn(() => isar.educations.delete(educationId));
   }
 }
-
 
 // --- Tela Principal (UI) ---
 
@@ -66,64 +49,67 @@ class EducationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Assiste ao provider do stream para obter o estado atual dos dados.
     final educationAsyncValue = ref.watch(educationStreamProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Formação Acadêmica'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: educationAsyncValue.when(
-            data: (educations) {
-              if (educations.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'Nenhuma formação acadêmica cadastrada.\nClique em "+" para adicionar a primeira.',
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                itemCount: educations.length,
-                itemBuilder: (context, index) {
-                  return _EducationCard(education: educations[index]);
-                },
-              );
-            },
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stack) => Text('Ocorreu um erro: $error'),
-          ),
-        ),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Adicionar Formação'),
         onPressed: () => _showEducationDialog(context, ref),
       ),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: educationAsyncValue.when(
+              data: (educations) {
+                if (educations.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Nenhuma formação acadêmica cadastrada.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text('Adicionar Primeira Formação'),
+                          onPressed: () => _showEducationDialog(context, ref),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 80), // Padding inferior para o FAB
+                  itemCount: educations.length,
+                  itemBuilder: (context, index) {
+                    return _EducationCard(education: educations[index]);
+                  },
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (error, stack) => Text('Ocorreu um erro: $error'),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  // Função para exibir o diálogo de formulário de adição/edição.
   void _showEducationDialog(BuildContext context, WidgetRef ref, {Education? education}) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => EducationFormDialog(
-        ref: ref,
-        education: education,
-      ),
+      builder: (context) => _EducationFormDialog(educationToEdit: education),
     );
   }
 }
 
-
-// --- Widgets Auxiliares ---
-
-// Widget para exibir um único card de formação na lista.
+// Card para exibir uma única formação
 class _EducationCard extends ConsumerWidget {
   const _EducationCard({required this.education});
   final Education education;
@@ -132,11 +118,7 @@ class _EducationCard extends ConsumerWidget {
     final format = DateFormat('MMMM yyyy', 'pt_BR');
     final startDateString = edu.startDate != null ? format.format(edu.startDate!) : 'N/A';
     final endDateString = edu.inProgress ? 'Presente' : (edu.endDate != null ? format.format(edu.endDate!) : 'N/A');
-
-    final capitalizedStartDate = startDateString[0].toUpperCase() + startDateString.substring(1);
-    final capitalizedEndDate = endDateString[0].toUpperCase() + endDateString.substring(1);
-
-    return '$capitalizedStartDate - $capitalizedEndDate';
+    return '${startDateString[0].toUpperCase()}${startDateString.substring(1)} - ${endDateString[0].toUpperCase()}${endDateString.substring(1)}';
   }
 
   @override
@@ -148,31 +130,61 @@ class _EducationCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  '${education.degree ?? "Curso"} em ${education.fieldOfStudy ?? "Área não informada"}',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  education.institution ?? 'Instituição não informada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (education.isFeatured)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12.0, top: 4.0),
+                    child: Icon(Icons.star, color: Colors.amber, size: 20),
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${education.degree} em ${education.fieldOfStudy}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        education.institution,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.secondary),
+                      ),
+                    ],
                   ),
                 ),
-              ])),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Editar Formação', onPressed: () => EducationScreen()._showEducationDialog(context, ref, education: education)),
-                IconButton(icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error), tooltip: 'Excluir Formação', onPressed: () => _showDeleteConfirmationDialog(context, ref, education)),
-              ])
-            ]),
-            const SizedBox(height: 8),
-            Text(_formatPeriod(education), style: Theme.of(context).textTheme.bodySmall),
-            if (education.description?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 12),
-              Text(education.description!, style: Theme.of(context).textTheme.bodyMedium),
-            ],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Editar Formação',
+                      onPressed: () => EducationScreen()._showEducationDialog(context, ref, education: education),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                      tooltip: 'Excluir Formação',
+                      onPressed: () => _showDeleteConfirmationDialog(context, ref, education),
+                    ),
+                  ],
+                )
+              ],
+            ),
+            Padding(
+              padding: EdgeInsets.only(left: education.isFeatured ? 32.0 : 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Text(_formatPeriod(education), style: Theme.of(context).textTheme.bodySmall),
+                  if (education.description?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 12),
+                    Text(education.description!, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -201,31 +213,30 @@ class _EducationCard extends ConsumerWidget {
   }
 }
 
-// Diálogo com o formulário, convertido para StatefulWidget para gerenciar seu estado interno.
-class EducationFormDialog extends StatefulWidget {
-  const EducationFormDialog({super.key, required this.ref, this.education});
-  final WidgetRef ref;
-  final Education? education;
+// Widget para o formulário de diálogo, para manter o estado local
+class _EducationFormDialog extends ConsumerStatefulWidget {
+  final Education? educationToEdit;
+  const _EducationFormDialog({this.educationToEdit});
 
   @override
-  State<EducationFormDialog> createState() => _EducationFormDialogState();
+  ConsumerState<_EducationFormDialog> createState() => _EducationFormDialogState();
 }
 
-class _EducationFormDialogState extends State<EducationFormDialog> {
+class _EducationFormDialogState extends ConsumerState<_EducationFormDialog> {
   final _formKey = GlobalKey<FormState>();
-
-  late TextEditingController _institutionController;
-  late TextEditingController _degreeController;
-  late TextEditingController _fieldOfStudyController;
-  late TextEditingController _descriptionController;
+  late final TextEditingController _institutionController;
+  late final TextEditingController _degreeController;
+  late final TextEditingController _fieldOfStudyController;
+  late final TextEditingController _descriptionController;
   DateTime? _startDate;
   DateTime? _endDate;
   bool _inProgress = false;
+  bool _isFeatured = false;
 
   @override
   void initState() {
     super.initState();
-    final edu = widget.education;
+    final edu = widget.educationToEdit;
     _institutionController = TextEditingController(text: edu?.institution);
     _degreeController = TextEditingController(text: edu?.degree);
     _fieldOfStudyController = TextEditingController(text: edu?.fieldOfStudy);
@@ -233,42 +244,38 @@ class _EducationFormDialogState extends State<EducationFormDialog> {
     _startDate = edu?.startDate;
     _endDate = edu?.endDate;
     _inProgress = edu?.inProgress ?? false;
+    _isFeatured = edu?.isFeatured ?? false;
   }
-
   @override
   void dispose() {
-    _institutionController.dispose();
-    _degreeController.dispose();
-    _fieldOfStudyController.dispose();
-    _descriptionController.dispose();
+    _institutionController.dispose(); _degreeController.dispose();
+    _fieldOfStudyController.dispose(); _descriptionController.dispose();
     super.dispose();
   }
 
   Future<void> _selectMonthYear(BuildContext context, {required bool isStartDate}) async {
-    final pickedDate = await showMonthYearPicker(
-      context: context,
-      initialDate: (isStartDate ? _startDate : _endDate) ?? DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-      locale: const Locale('pt', 'BR'),
+    final picked = await showMonthYearPicker(
+      context: context, initialDate: (isStartDate ? _startDate : _endDate) ?? DateTime.now(),
+      firstDate: DateTime(1950), lastDate: DateTime.now(), locale: const Locale('pt', 'BR'),
     );
-    if (pickedDate != null) {
-      setState(() => isStartDate ? _startDate = pickedDate : _endDate = pickedDate);
+    if (picked != null) {
+      setState(() => isStartDate ? _startDate = picked : _endDate = picked);
     }
   }
 
   void _onSave() {
     if (_formKey.currentState!.validate()) {
-      final educationToSave = (widget.education ?? Education())
+      final eduToSave = (widget.educationToEdit ?? Education())
         ..institution = _institutionController.text.trim()
         ..degree = _degreeController.text.trim()
         ..fieldOfStudy = _fieldOfStudyController.text.trim()
         ..description = _descriptionController.text.trim()
         ..startDate = _startDate
         ..endDate = _inProgress ? null : _endDate
-        ..inProgress = _inProgress;
+        ..inProgress = _inProgress
+        ..isFeatured = _isFeatured;
 
-      widget.ref.read(educationRepositoryProvider).saveEducation(educationToSave);
+      ref.read(educationRepositoryProvider).saveEducation(eduToSave);
       Navigator.of(context).pop();
     }
   }
@@ -276,9 +283,10 @@ class _EducationFormDialogState extends State<EducationFormDialog> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMMM yyyy', 'pt_BR');
+    final isEditing = widget.educationToEdit != null;
 
     return AlertDialog(
-      title: Text(widget.education == null ? 'Nova Formação' : 'Editar Formação'),
+      title: Text(isEditing ? 'Editar Formação' : 'Nova Formação'),
       content: Form(
         key: _formKey,
         child: SizedBox(
@@ -287,11 +295,11 @@ class _EducationFormDialogState extends State<EducationFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(controller: _institutionController, decoration: const InputDecoration(labelText: 'Instituição'), validator: (value) => value!.trim().isEmpty ? 'Este campo é obrigatório' : null),
+                TextFormField(controller: _institutionController, decoration: const InputDecoration(labelText: 'Instituição*'), validator: (v) => v!.trim().isEmpty ? 'Campo obrigatório' : null),
                 const SizedBox(height: 12),
-                TextFormField(controller: _degreeController, decoration: const InputDecoration(labelText: 'Tipo do Curso', hintText: 'Ex: Graduação, Mestrado, Técnico'), validator: (value) => value!.trim().isEmpty ? 'Este campo é obrigatório' : null),
+                TextFormField(controller: _degreeController, decoration: const InputDecoration(labelText: 'Tipo do Curso*', hintText: 'Ex: Graduação, Mestrado, Técnico'), validator: (v) => v!.trim().isEmpty ? 'Campo obrigatório' : null),
                 const SizedBox(height: 12),
-                TextFormField(controller: _fieldOfStudyController, decoration: const InputDecoration(labelText: 'Nome do Curso', hintText: 'Ex: Ciência da Computação'), validator: (value) => value!.trim().isEmpty ? 'Este campo é obrigatório' : null),
+                TextFormField(controller: _fieldOfStudyController, decoration: const InputDecoration(labelText: 'Nome do Curso*', hintText: 'Ex: Ciência da Computação'), validator: (v) => v!.trim().isEmpty ? 'Campo obrigatório' : null),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -300,7 +308,7 @@ class _EducationFormDialogState extends State<EducationFormDialog> {
                   ],
                 ),
                 if (_startDate == null) Padding(padding: const EdgeInsets.only(top: 4.0), child: Text('Selecione uma data de início', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12))),
-                CheckboxListTile(title: const Text('Estou cursando'), value: _inProgress, onChanged: (val) => setState(() => _inProgress = val ?? false), controlAffinity: ListTileControlAffinity.leading, contentPadding: EdgeInsets.zero),
+                CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Estou cursando'), value: _inProgress, onChanged: (v) => setState(() => _inProgress = v ?? false)),
                 if (!_inProgress) Row(
                   children: [
                     Expanded(child: Text(_endDate == null ? 'Data de Conclusão' : 'Conclusão: ${dateFormat.format(_endDate!)}')),
@@ -309,6 +317,8 @@ class _EducationFormDialogState extends State<EducationFormDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Descrição/Observações', alignLabelWithHint: true, border: OutlineInputBorder()), maxLines: 3),
+                const SizedBox(height: 8),
+                CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Marcar como destaque'), subtitle: const Text('Dá ênfase a esta formação no currículo.'), value: _isFeatured, onChanged: (v) => setState(() => _isFeatured = v ?? false)),
               ],
             ),
           ),

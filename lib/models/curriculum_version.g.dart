@@ -17,13 +17,33 @@ const CurriculumVersionSchema = CollectionSchema(
   name: r'CurriculumVersion',
   id: 485594069921618657,
   properties: {
-    r'createdAt': PropertySchema(
+    r'accentColorHex': PropertySchema(
       id: 0,
+      name: r'accentColorHex',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 1,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
+    r'fontSize': PropertySchema(
+      id: 2,
+      name: r'fontSize',
+      type: IsarType.double,
+    ),
+    r'languageCode': PropertySchema(
+      id: 3,
+      name: r'languageCode',
+      type: IsarType.string,
+    ),
+    r'lastUsedTemplate': PropertySchema(
+      id: 4,
+      name: r'lastUsedTemplate',
+      type: IsarType.string,
+    ),
     r'name': PropertySchema(
-      id: 1,
+      id: 5,
       name: r'name',
       type: IsarType.string,
     )
@@ -33,7 +53,21 @@ const CurriculumVersionSchema = CollectionSchema(
   deserialize: _curriculumVersionDeserialize,
   deserializeProp: _curriculumVersionDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'createdAt': IndexSchema(
+      id: -3433535483987302584,
+      name: r'createdAt',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'createdAt',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    )
+  },
   links: {
     r'personalData': LinkSchema(
       id: -7420268957448322866,
@@ -79,6 +113,19 @@ int _curriculumVersionEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.accentColorHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.languageCode.length * 3;
+  {
+    final value = object.lastUsedTemplate;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
 }
@@ -89,8 +136,12 @@ void _curriculumVersionSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeString(offsets[1], object.name);
+  writer.writeString(offsets[0], object.accentColorHex);
+  writer.writeDateTime(offsets[1], object.createdAt);
+  writer.writeDouble(offsets[2], object.fontSize);
+  writer.writeString(offsets[3], object.languageCode);
+  writer.writeString(offsets[4], object.lastUsedTemplate);
+  writer.writeString(offsets[5], object.name);
 }
 
 CurriculumVersion _curriculumVersionDeserialize(
@@ -99,11 +150,14 @@ CurriculumVersion _curriculumVersionDeserialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = CurriculumVersion(
-    createdAt: reader.readDateTime(offsets[0]),
-    name: reader.readString(offsets[1]),
-  );
+  final object = CurriculumVersion();
+  object.accentColorHex = reader.readStringOrNull(offsets[0]);
+  object.createdAt = reader.readDateTime(offsets[1]);
+  object.fontSize = reader.readDoubleOrNull(offsets[2]);
   object.id = id;
+  object.languageCode = reader.readString(offsets[3]);
+  object.lastUsedTemplate = reader.readStringOrNull(offsets[4]);
+  object.name = reader.readString(offsets[5]);
   return object;
 }
 
@@ -115,8 +169,16 @@ P _curriculumVersionDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
+      return (reader.readDateTime(offset)) as P;
+    case 2:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -157,6 +219,15 @@ extension CurriculumVersionQueryWhereSort
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhere>
+      anyCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'createdAt'),
+      );
     });
   }
 }
@@ -230,10 +301,257 @@ extension CurriculumVersionQueryWhere
       ));
     });
   }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhereClause>
+      createdAtEqualTo(DateTime createdAt) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'createdAt',
+        value: [createdAt],
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhereClause>
+      createdAtNotEqualTo(DateTime createdAt) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'createdAt',
+              lower: [],
+              upper: [createdAt],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'createdAt',
+              lower: [createdAt],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'createdAt',
+              lower: [createdAt],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'createdAt',
+              lower: [],
+              upper: [createdAt],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhereClause>
+      createdAtGreaterThan(
+    DateTime createdAt, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'createdAt',
+        lower: [createdAt],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhereClause>
+      createdAtLessThan(
+    DateTime createdAt, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'createdAt',
+        lower: [],
+        upper: [createdAt],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterWhereClause>
+      createdAtBetween(
+    DateTime lowerCreatedAt,
+    DateTime upperCreatedAt, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'createdAt',
+        lower: [lowerCreatedAt],
+        includeLower: includeLower,
+        upper: [upperCreatedAt],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension CurriculumVersionQueryFilter
     on QueryBuilder<CurriculumVersion, CurriculumVersion, QFilterCondition> {
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'accentColorHex',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'accentColorHex',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'accentColorHex',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'accentColorHex',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'accentColorHex',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'accentColorHex',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      accentColorHexIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'accentColorHex',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
       createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -291,6 +609,90 @@ extension CurriculumVersionQueryFilter
   }
 
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fontSize',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fontSize',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fontSize',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fontSize',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fontSize',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      fontSizeBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fontSize',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
       idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -342,6 +744,296 @@ extension CurriculumVersionQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'languageCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'languageCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'languageCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'languageCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      languageCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'languageCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastUsedTemplate',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastUsedTemplate',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastUsedTemplate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lastUsedTemplate',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lastUsedTemplate',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastUsedTemplate',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      lastUsedTemplateIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lastUsedTemplate',
+        value: '',
       ));
     });
   }
@@ -750,6 +1442,20 @@ extension CurriculumVersionQueryLinks
 extension CurriculumVersionQuerySortBy
     on QueryBuilder<CurriculumVersion, CurriculumVersion, QSortBy> {
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByAccentColorHex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'accentColorHex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByAccentColorHexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'accentColorHex', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
       sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -760,6 +1466,48 @@ extension CurriculumVersionQuerySortBy
       sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByFontSize() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fontSize', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByFontSizeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fontSize', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByLanguageCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByLanguageCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByLastUsedTemplate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUsedTemplate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByLastUsedTemplateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUsedTemplate', Sort.desc);
     });
   }
 
@@ -781,6 +1529,20 @@ extension CurriculumVersionQuerySortBy
 extension CurriculumVersionQuerySortThenBy
     on QueryBuilder<CurriculumVersion, CurriculumVersion, QSortThenBy> {
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByAccentColorHex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'accentColorHex', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByAccentColorHexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'accentColorHex', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
       thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -794,6 +1556,20 @@ extension CurriculumVersionQuerySortThenBy
     });
   }
 
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByFontSize() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fontSize', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByFontSizeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fontSize', Sort.desc);
+    });
+  }
+
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -804,6 +1580,34 @@ extension CurriculumVersionQuerySortThenBy
       thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByLanguageCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByLanguageCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'languageCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByLastUsedTemplate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUsedTemplate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByLastUsedTemplateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUsedTemplate', Sort.desc);
     });
   }
 
@@ -825,9 +1629,39 @@ extension CurriculumVersionQuerySortThenBy
 extension CurriculumVersionQueryWhereDistinct
     on QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct> {
   QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByAccentColorHex({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'accentColorHex',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
       distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByFontSize() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fontSize');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByLanguageCode({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'languageCode', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByLastUsedTemplate({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastUsedTemplate',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -847,10 +1681,38 @@ extension CurriculumVersionQueryProperty
     });
   }
 
+  QueryBuilder<CurriculumVersion, String?, QQueryOperations>
+      accentColorHexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'accentColorHex');
+    });
+  }
+
   QueryBuilder<CurriculumVersion, DateTime, QQueryOperations>
       createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, double?, QQueryOperations>
+      fontSizeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fontSize');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, String, QQueryOperations>
+      languageCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'languageCode');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, String?, QQueryOperations>
+      lastUsedTemplateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastUsedTemplate');
     });
   }
 

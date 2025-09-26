@@ -47,8 +47,13 @@ const EducationSchema = CollectionSchema(
       name: r'institution',
       type: IsarType.string,
     ),
-    r'startDate': PropertySchema(
+    r'isFeatured': PropertySchema(
       id: 6,
+      name: r'isFeatured',
+      type: IsarType.bool,
+    ),
+    r'startDate': PropertySchema(
+      id: 7,
       name: r'startDate',
       type: IsarType.dateTime,
     )
@@ -59,6 +64,19 @@ const EducationSchema = CollectionSchema(
   deserializeProp: _educationDeserializeProp,
   idName: r'id',
   indexes: {
+    r'institution': IndexSchema(
+      id: -3523808235559258724,
+      name: r'institution',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'institution',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
     r'startDate': IndexSchema(
       id: 7723980484494730382,
       name: r'startDate',
@@ -87,30 +105,15 @@ int _educationEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  {
-    final value = object.degree;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.degree.length * 3;
   {
     final value = object.description;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.fieldOfStudy;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.institution;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.fieldOfStudy.length * 3;
+  bytesCount += 3 + object.institution.length * 3;
   return bytesCount;
 }
 
@@ -126,7 +129,8 @@ void _educationSerialize(
   writer.writeString(offsets[3], object.fieldOfStudy);
   writer.writeBool(offsets[4], object.inProgress);
   writer.writeString(offsets[5], object.institution);
-  writer.writeDateTime(offsets[6], object.startDate);
+  writer.writeBool(offsets[6], object.isFeatured);
+  writer.writeDateTime(offsets[7], object.startDate);
 }
 
 Education _educationDeserialize(
@@ -136,14 +140,15 @@ Education _educationDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Education();
-  object.degree = reader.readStringOrNull(offsets[0]);
+  object.degree = reader.readString(offsets[0]);
   object.description = reader.readStringOrNull(offsets[1]);
   object.endDate = reader.readDateTimeOrNull(offsets[2]);
-  object.fieldOfStudy = reader.readStringOrNull(offsets[3]);
+  object.fieldOfStudy = reader.readString(offsets[3]);
   object.id = id;
   object.inProgress = reader.readBool(offsets[4]);
-  object.institution = reader.readStringOrNull(offsets[5]);
-  object.startDate = reader.readDateTimeOrNull(offsets[6]);
+  object.institution = reader.readString(offsets[5]);
+  object.isFeatured = reader.readBool(offsets[6]);
+  object.startDate = reader.readDateTimeOrNull(offsets[7]);
   return object;
 }
 
@@ -155,18 +160,20 @@ P _educationDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -190,6 +197,14 @@ extension EducationQueryWhereSort
   QueryBuilder<Education, Education, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhere> anyInstitution() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'institution'),
+      );
     });
   }
 
@@ -266,6 +281,143 @@ extension EducationQueryWhere
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionEqualTo(
+      String institution) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'institution',
+        value: [institution],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionNotEqualTo(
+      String institution) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'institution',
+              lower: [],
+              upper: [institution],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'institution',
+              lower: [institution],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'institution',
+              lower: [institution],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'institution',
+              lower: [],
+              upper: [institution],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionGreaterThan(
+    String institution, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'institution',
+        lower: [institution],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionLessThan(
+    String institution, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'institution',
+        lower: [],
+        upper: [institution],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionBetween(
+    String lowerInstitution,
+    String upperInstitution, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'institution',
+        lower: [lowerInstitution],
+        includeLower: includeLower,
+        upper: [upperInstitution],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionStartsWith(
+      String InstitutionPrefix) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'institution',
+        lower: [InstitutionPrefix],
+        upper: ['$InstitutionPrefix\u{FFFFF}'],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> institutionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'institution',
+        value: [''],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause>
+      institutionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'institution',
+              upper: [''],
+            ))
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'institution',
+              lower: [''],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'institution',
+              lower: [''],
+            ))
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'institution',
+              upper: [''],
+            ));
+      }
     });
   }
 
@@ -382,24 +534,8 @@ extension EducationQueryWhere
 
 extension EducationQueryFilter
     on QueryBuilder<Education, Education, QFilterCondition> {
-  QueryBuilder<Education, Education, QAfterFilterCondition> degreeIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'degree',
-      ));
-    });
-  }
-
-  QueryBuilder<Education, Education, QAfterFilterCondition> degreeIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'degree',
-      ));
-    });
-  }
-
   QueryBuilder<Education, Education, QAfterFilterCondition> degreeEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -412,7 +548,7 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> degreeGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -427,7 +563,7 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> degreeLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -442,8 +578,8 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> degreeBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -749,26 +885,8 @@ extension EducationQueryFilter
     });
   }
 
-  QueryBuilder<Education, Education, QAfterFilterCondition>
-      fieldOfStudyIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'fieldOfStudy',
-      ));
-    });
-  }
-
-  QueryBuilder<Education, Education, QAfterFilterCondition>
-      fieldOfStudyIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'fieldOfStudy',
-      ));
-    });
-  }
-
   QueryBuilder<Education, Education, QAfterFilterCondition> fieldOfStudyEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -782,7 +900,7 @@ extension EducationQueryFilter
 
   QueryBuilder<Education, Education, QAfterFilterCondition>
       fieldOfStudyGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -798,7 +916,7 @@ extension EducationQueryFilter
 
   QueryBuilder<Education, Education, QAfterFilterCondition>
       fieldOfStudyLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -813,8 +931,8 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> fieldOfStudyBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -965,26 +1083,8 @@ extension EducationQueryFilter
     });
   }
 
-  QueryBuilder<Education, Education, QAfterFilterCondition>
-      institutionIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'institution',
-      ));
-    });
-  }
-
-  QueryBuilder<Education, Education, QAfterFilterCondition>
-      institutionIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'institution',
-      ));
-    });
-  }
-
   QueryBuilder<Education, Education, QAfterFilterCondition> institutionEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -998,7 +1098,7 @@ extension EducationQueryFilter
 
   QueryBuilder<Education, Education, QAfterFilterCondition>
       institutionGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1013,7 +1113,7 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> institutionLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1028,8 +1128,8 @@ extension EducationQueryFilter
   }
 
   QueryBuilder<Education, Education, QAfterFilterCondition> institutionBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1113,6 +1213,16 @@ extension EducationQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'institution',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterFilterCondition> isFeaturedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFeatured',
+        value: value,
       ));
     });
   }
@@ -1268,6 +1378,18 @@ extension EducationQuerySortBy on QueryBuilder<Education, Education, QSortBy> {
     });
   }
 
+  QueryBuilder<Education, Education, QAfterSortBy> sortByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterSortBy> sortByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Education, Education, QAfterSortBy> sortByStartDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'startDate', Sort.asc);
@@ -1367,6 +1489,18 @@ extension EducationQuerySortThenBy
     });
   }
 
+  QueryBuilder<Education, Education, QAfterSortBy> thenByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterSortBy> thenByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Education, Education, QAfterSortBy> thenByStartDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'startDate', Sort.asc);
@@ -1422,6 +1556,12 @@ extension EducationQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Education, Education, QDistinct> distinctByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFeatured');
+    });
+  }
+
   QueryBuilder<Education, Education, QDistinct> distinctByStartDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'startDate');
@@ -1437,7 +1577,7 @@ extension EducationQueryProperty
     });
   }
 
-  QueryBuilder<Education, String?, QQueryOperations> degreeProperty() {
+  QueryBuilder<Education, String, QQueryOperations> degreeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'degree');
     });
@@ -1455,7 +1595,7 @@ extension EducationQueryProperty
     });
   }
 
-  QueryBuilder<Education, String?, QQueryOperations> fieldOfStudyProperty() {
+  QueryBuilder<Education, String, QQueryOperations> fieldOfStudyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fieldOfStudy');
     });
@@ -1467,9 +1607,15 @@ extension EducationQueryProperty
     });
   }
 
-  QueryBuilder<Education, String?, QQueryOperations> institutionProperty() {
+  QueryBuilder<Education, String, QQueryOperations> institutionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'institution');
+    });
+  }
+
+  QueryBuilder<Education, bool, QQueryOperations> isFeaturedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFeatured');
     });
   }
 

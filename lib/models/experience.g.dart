@@ -37,18 +37,23 @@ const ExperienceSchema = CollectionSchema(
       name: r'isCurrent',
       type: IsarType.bool,
     ),
-    r'jobTitle': PropertySchema(
+    r'isFeatured': PropertySchema(
       id: 4,
+      name: r'isFeatured',
+      type: IsarType.bool,
+    ),
+    r'jobTitle': PropertySchema(
+      id: 5,
       name: r'jobTitle',
       type: IsarType.string,
     ),
     r'location': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'location',
       type: IsarType.string,
     ),
     r'startDate': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'startDate',
       type: IsarType.dateTime,
     )
@@ -58,7 +63,34 @@ const ExperienceSchema = CollectionSchema(
   deserialize: _experienceDeserialize,
   deserializeProp: _experienceDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'company': IndexSchema(
+      id: -6165191775571412598,
+      name: r'company',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'company',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'startDate': IndexSchema(
+      id: 7723980484494730382,
+      name: r'startDate',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'startDate',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _experienceGetId,
@@ -73,24 +105,14 @@ int _experienceEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  {
-    final value = object.company;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.company.length * 3;
   {
     final value = object.description;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.jobTitle;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.jobTitle.length * 3;
   {
     final value = object.location;
     if (value != null) {
@@ -110,9 +132,10 @@ void _experienceSerialize(
   writer.writeString(offsets[1], object.description);
   writer.writeDateTime(offsets[2], object.endDate);
   writer.writeBool(offsets[3], object.isCurrent);
-  writer.writeString(offsets[4], object.jobTitle);
-  writer.writeString(offsets[5], object.location);
-  writer.writeDateTime(offsets[6], object.startDate);
+  writer.writeBool(offsets[4], object.isFeatured);
+  writer.writeString(offsets[5], object.jobTitle);
+  writer.writeString(offsets[6], object.location);
+  writer.writeDateTime(offsets[7], object.startDate);
 }
 
 Experience _experienceDeserialize(
@@ -122,14 +145,15 @@ Experience _experienceDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Experience();
-  object.company = reader.readStringOrNull(offsets[0]);
+  object.company = reader.readString(offsets[0]);
   object.description = reader.readStringOrNull(offsets[1]);
   object.endDate = reader.readDateTimeOrNull(offsets[2]);
   object.id = id;
   object.isCurrent = reader.readBool(offsets[3]);
-  object.jobTitle = reader.readStringOrNull(offsets[4]);
-  object.location = reader.readStringOrNull(offsets[5]);
-  object.startDate = reader.readDateTimeOrNull(offsets[6]);
+  object.isFeatured = reader.readBool(offsets[4]);
+  object.jobTitle = reader.readString(offsets[5]);
+  object.location = reader.readStringOrNull(offsets[6]);
+  object.startDate = reader.readDateTimeOrNull(offsets[7]);
   return object;
 }
 
@@ -141,7 +165,7 @@ P _experienceDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
@@ -149,10 +173,12 @@ P _experienceDeserializeProp<P>(
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -176,6 +202,22 @@ extension ExperienceQueryWhereSort
   QueryBuilder<Experience, Experience, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhere> anyCompany() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'company'),
+      );
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhere> anyStartDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'startDate'),
+      );
     });
   }
 }
@@ -246,29 +288,258 @@ extension ExperienceQueryWhere
       ));
     });
   }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyEqualTo(
+      String company) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'company',
+        value: [company],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyNotEqualTo(
+      String company) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'company',
+              lower: [],
+              upper: [company],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'company',
+              lower: [company],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'company',
+              lower: [company],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'company',
+              lower: [],
+              upper: [company],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyGreaterThan(
+    String company, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'company',
+        lower: [company],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyLessThan(
+    String company, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'company',
+        lower: [],
+        upper: [company],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyBetween(
+    String lowerCompany,
+    String upperCompany, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'company',
+        lower: [lowerCompany],
+        includeLower: includeLower,
+        upper: [upperCompany],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyStartsWith(
+      String CompanyPrefix) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'company',
+        lower: [CompanyPrefix],
+        upper: ['$CompanyPrefix\u{FFFFF}'],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'company',
+        value: [''],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> companyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'company',
+              upper: [''],
+            ))
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'company',
+              lower: [''],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.greaterThan(
+              indexName: r'company',
+              lower: [''],
+            ))
+            .addWhereClause(IndexWhereClause.lessThan(
+              indexName: r'company',
+              upper: [''],
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'startDate',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateEqualTo(
+      DateTime? startDate) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'startDate',
+        value: [startDate],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateNotEqualTo(
+      DateTime? startDate) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [],
+              upper: [startDate],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [startDate],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [startDate],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [],
+              upper: [startDate],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateGreaterThan(
+    DateTime? startDate, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [startDate],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateLessThan(
+    DateTime? startDate, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [],
+        upper: [startDate],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterWhereClause> startDateBetween(
+    DateTime? lowerStartDate,
+    DateTime? upperStartDate, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [lowerStartDate],
+        includeLower: includeLower,
+        upper: [upperStartDate],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension ExperienceQueryFilter
     on QueryBuilder<Experience, Experience, QFilterCondition> {
-  QueryBuilder<Experience, Experience, QAfterFilterCondition> companyIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'company',
-      ));
-    });
-  }
-
-  QueryBuilder<Experience, Experience, QAfterFilterCondition>
-      companyIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'company',
-      ));
-    });
-  }
-
   QueryBuilder<Experience, Experience, QAfterFilterCondition> companyEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -282,7 +553,7 @@ extension ExperienceQueryFilter
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition>
       companyGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -297,7 +568,7 @@ extension ExperienceQueryFilter
   }
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition> companyLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -312,8 +583,8 @@ extension ExperienceQueryFilter
   }
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition> companyBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -687,25 +958,18 @@ extension ExperienceQueryFilter
     });
   }
 
-  QueryBuilder<Experience, Experience, QAfterFilterCondition> jobTitleIsNull() {
+  QueryBuilder<Experience, Experience, QAfterFilterCondition> isFeaturedEqualTo(
+      bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'jobTitle',
-      ));
-    });
-  }
-
-  QueryBuilder<Experience, Experience, QAfterFilterCondition>
-      jobTitleIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'jobTitle',
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFeatured',
+        value: value,
       ));
     });
   }
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition> jobTitleEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -719,7 +983,7 @@ extension ExperienceQueryFilter
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition>
       jobTitleGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -734,7 +998,7 @@ extension ExperienceQueryFilter
   }
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition> jobTitleLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -749,8 +1013,8 @@ extension ExperienceQueryFilter
   }
 
   QueryBuilder<Experience, Experience, QAfterFilterCondition> jobTitleBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1118,6 +1382,18 @@ extension ExperienceQuerySortBy
     });
   }
 
+  QueryBuilder<Experience, Experience, QAfterSortBy> sortByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterSortBy> sortByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Experience, Experience, QAfterSortBy> sortByJobTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'jobTitle', Sort.asc);
@@ -1217,6 +1493,18 @@ extension ExperienceQuerySortThenBy
     });
   }
 
+  QueryBuilder<Experience, Experience, QAfterSortBy> thenByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Experience, Experience, QAfterSortBy> thenByIsFeaturedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFeatured', Sort.desc);
+    });
+  }
+
   QueryBuilder<Experience, Experience, QAfterSortBy> thenByJobTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'jobTitle', Sort.asc);
@@ -1282,6 +1570,12 @@ extension ExperienceQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Experience, Experience, QDistinct> distinctByIsFeatured() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFeatured');
+    });
+  }
+
   QueryBuilder<Experience, Experience, QDistinct> distinctByJobTitle(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1311,7 +1605,7 @@ extension ExperienceQueryProperty
     });
   }
 
-  QueryBuilder<Experience, String?, QQueryOperations> companyProperty() {
+  QueryBuilder<Experience, String, QQueryOperations> companyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'company');
     });
@@ -1335,7 +1629,13 @@ extension ExperienceQueryProperty
     });
   }
 
-  QueryBuilder<Experience, String?, QQueryOperations> jobTitleProperty() {
+  QueryBuilder<Experience, bool, QQueryOperations> isFeaturedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFeatured');
+    });
+  }
+
+  QueryBuilder<Experience, String, QQueryOperations> jobTitleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'jobTitle');
     });
