@@ -70,6 +70,35 @@ class _ShellScreenState extends State<ShellScreen> {
                     : NavigationRailLabelType.all,
 
                 extended: isExtended, // A propriedade 'extended' agora usa a mesma variável.
+                // --- Adicione a propriedade `trailing` ---
+                trailing: Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.settings_outlined),
+                            tooltip: 'Configurações',
+                            onPressed: () => context.go('/settings'),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.info_outline),
+                            tooltip: 'Sobre',
+                            onPressed: () => context.go('/about'),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.favorite_border),
+                            tooltip: 'Apoie o Projeto',
+                            onPressed: () => context.go('/support'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 destinations: const [
                   NavigationRailDestination(
                     icon: Icon(Icons.dashboard_outlined),
@@ -103,6 +132,7 @@ class _ShellScreenState extends State<ShellScreen> {
                   ),
                 ],
               );
+
             }
             return const SizedBox.shrink(); // Não mostra nada em telas pequenas
           }),
@@ -125,5 +155,7 @@ class _ShellScreenState extends State<ShellScreen> {
       )
           : null,
     );
+
   }
+
 }
