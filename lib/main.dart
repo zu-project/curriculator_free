@@ -1,22 +1,61 @@
+import 'package:curriculator_free/core/routing/app_router.dart';
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
-import 'models/personal_data.dart';
-import 'models/experience.dart';
-// ... importe os outros modelos
-
-late Isar isar; // Instância global do Isar
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
+// --- CORREÇÃO 1: Adicionar esta importação ---
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:month_year_picker/month_year_picker.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final dir = await getApplicationDocumentsDirectory();
-  isar = await Isar.open(
-    [
-      PersonalDataSchema,
-      ExperienceSchema,
-      // ... adicione os outros Schemas aqui
-    ],
-    directory: dir.path,
+  await initializeDateFormatting('pt_BR', null);
+
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
   );
-  runApp(const MyApp());
+}
+
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: 'Curriculator Free',
+      debugShowCheckedModeBanner: false,
+      locale: const Locale('pt', 'BR'),
+
+      // --- CORREÇÃO 2: Remover o 'const' daqui e adicionar a importação acima ---
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate, // Adicionado para completude
+        MonthYearPickerLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+      ],
+
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
+      routerConfig: router,
+    );
+  }
 }

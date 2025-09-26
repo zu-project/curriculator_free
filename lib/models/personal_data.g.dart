@@ -22,33 +22,63 @@ const PersonalDataSchema = CollectionSchema(
       name: r'address',
       type: IsarType.string,
     ),
-    r'email': PropertySchema(
+    r'birthDate': PropertySchema(
       id: 1,
+      name: r'birthDate',
+      type: IsarType.dateTime,
+    ),
+    r'email': PropertySchema(
+      id: 2,
       name: r'email',
       type: IsarType.string,
     ),
+    r'hasCar': PropertySchema(
+      id: 3,
+      name: r'hasCar',
+      type: IsarType.bool,
+    ),
+    r'hasMotorcycle': PropertySchema(
+      id: 4,
+      name: r'hasMotorcycle',
+      type: IsarType.bool,
+    ),
+    r'hasRelocationAvailability': PropertySchema(
+      id: 5,
+      name: r'hasRelocationAvailability',
+      type: IsarType.bool,
+    ),
+    r'hasTravelAvailability': PropertySchema(
+      id: 6,
+      name: r'hasTravelAvailability',
+      type: IsarType.bool,
+    ),
+    r'licenseCategories': PropertySchema(
+      id: 7,
+      name: r'licenseCategories',
+      type: IsarType.stringList,
+    ),
     r'linkedinUrl': PropertySchema(
-      id: 2,
+      id: 8,
       name: r'linkedinUrl',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 3,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'phone': PropertySchema(
-      id: 4,
+      id: 10,
       name: r'phone',
       type: IsarType.string,
     ),
     r'portfolioUrl': PropertySchema(
-      id: 5,
+      id: 11,
       name: r'portfolioUrl',
       type: IsarType.string,
     ),
     r'summary': PropertySchema(
-      id: 6,
+      id: 12,
       name: r'summary',
       type: IsarType.string,
     )
@@ -99,6 +129,13 @@ int _personalDataEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.licenseCategories.length * 3;
+  {
+    for (var i = 0; i < object.licenseCategories.length; i++) {
+      final value = object.licenseCategories[i];
+      bytesCount += value.length * 3;
+    }
+  }
   {
     final value = object.linkedinUrl;
     if (value != null) {
@@ -139,12 +176,18 @@ void _personalDataSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.address);
-  writer.writeString(offsets[1], object.email);
-  writer.writeString(offsets[2], object.linkedinUrl);
-  writer.writeString(offsets[3], object.name);
-  writer.writeString(offsets[4], object.phone);
-  writer.writeString(offsets[5], object.portfolioUrl);
-  writer.writeString(offsets[6], object.summary);
+  writer.writeDateTime(offsets[1], object.birthDate);
+  writer.writeString(offsets[2], object.email);
+  writer.writeBool(offsets[3], object.hasCar);
+  writer.writeBool(offsets[4], object.hasMotorcycle);
+  writer.writeBool(offsets[5], object.hasRelocationAvailability);
+  writer.writeBool(offsets[6], object.hasTravelAvailability);
+  writer.writeStringList(offsets[7], object.licenseCategories);
+  writer.writeString(offsets[8], object.linkedinUrl);
+  writer.writeString(offsets[9], object.name);
+  writer.writeString(offsets[10], object.phone);
+  writer.writeString(offsets[11], object.portfolioUrl);
+  writer.writeString(offsets[12], object.summary);
 }
 
 PersonalData _personalDataDeserialize(
@@ -155,13 +198,19 @@ PersonalData _personalDataDeserialize(
 ) {
   final object = PersonalData();
   object.address = reader.readStringOrNull(offsets[0]);
-  object.email = reader.readStringOrNull(offsets[1]);
+  object.birthDate = reader.readDateTimeOrNull(offsets[1]);
+  object.email = reader.readStringOrNull(offsets[2]);
+  object.hasCar = reader.readBool(offsets[3]);
+  object.hasMotorcycle = reader.readBool(offsets[4]);
+  object.hasRelocationAvailability = reader.readBool(offsets[5]);
+  object.hasTravelAvailability = reader.readBool(offsets[6]);
   object.id = id;
-  object.linkedinUrl = reader.readStringOrNull(offsets[2]);
-  object.name = reader.readStringOrNull(offsets[3]);
-  object.phone = reader.readStringOrNull(offsets[4]);
-  object.portfolioUrl = reader.readStringOrNull(offsets[5]);
-  object.summary = reader.readStringOrNull(offsets[6]);
+  object.licenseCategories = reader.readStringList(offsets[7]) ?? [];
+  object.linkedinUrl = reader.readStringOrNull(offsets[8]);
+  object.name = reader.readStringOrNull(offsets[9]);
+  object.phone = reader.readStringOrNull(offsets[10]);
+  object.portfolioUrl = reader.readStringOrNull(offsets[11]);
+  object.summary = reader.readStringOrNull(offsets[12]);
   return object;
 }
 
@@ -175,16 +224,28 @@ P _personalDataDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -605,6 +666,80 @@ extension PersonalDataQueryFilter
   }
 
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'birthDate',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'birthDate',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'birthDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'birthDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'birthDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      birthDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'birthDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
       emailIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -756,6 +891,46 @@ extension PersonalDataQueryFilter
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> hasCarEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasCar',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      hasMotorcycleEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasMotorcycle',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      hasRelocationAvailabilityEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasRelocationAvailability',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      hasTravelAvailabilityEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasTravelAvailability',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition> idEqualTo(
       Id value) {
     return QueryBuilder.apply(this, (query) {
@@ -806,6 +981,233 @@ extension PersonalDataQueryFilter
         upper: upper,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'licenseCategories',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'licenseCategories',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'licenseCategories',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'licenseCategories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'licenseCategories',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterFilterCondition>
+      licenseCategoriesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'licenseCategories',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -1595,6 +1997,18 @@ extension PersonalDataQuerySortBy
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByBirthDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'birthDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByBirthDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'birthDate', Sort.desc);
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByEmail() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.asc);
@@ -1604,6 +2018,59 @@ extension PersonalDataQuerySortBy
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByEmailDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByHasCar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasCar', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByHasCarDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasCar', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> sortByHasMotorcycle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMotorcycle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      sortByHasMotorcycleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMotorcycle', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      sortByHasRelocationAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasRelocationAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      sortByHasRelocationAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasRelocationAvailability', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      sortByHasTravelAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasTravelAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      sortByHasTravelAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasTravelAvailability', Sort.desc);
     });
   }
 
@@ -1684,6 +2151,18 @@ extension PersonalDataQuerySortThenBy
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByBirthDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'birthDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByBirthDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'birthDate', Sort.desc);
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByEmail() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.asc);
@@ -1693,6 +2172,59 @@ extension PersonalDataQuerySortThenBy
   QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByEmailDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByHasCar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasCar', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByHasCarDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasCar', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy> thenByHasMotorcycle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMotorcycle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      thenByHasMotorcycleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMotorcycle', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      thenByHasRelocationAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasRelocationAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      thenByHasRelocationAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasRelocationAvailability', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      thenByHasTravelAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasTravelAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QAfterSortBy>
+      thenByHasTravelAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasTravelAvailability', Sort.desc);
     });
   }
 
@@ -1780,10 +2312,50 @@ extension PersonalDataQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PersonalData, PersonalData, QDistinct> distinctByBirthDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'birthDate');
+    });
+  }
+
   QueryBuilder<PersonalData, PersonalData, QDistinct> distinctByEmail(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'email', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QDistinct> distinctByHasCar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasCar');
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QDistinct>
+      distinctByHasMotorcycle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasMotorcycle');
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QDistinct>
+      distinctByHasRelocationAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasRelocationAvailability');
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QDistinct>
+      distinctByHasTravelAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasTravelAvailability');
+    });
+  }
+
+  QueryBuilder<PersonalData, PersonalData, QDistinct>
+      distinctByLicenseCategories() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'licenseCategories');
     });
   }
 
@@ -1837,9 +2409,48 @@ extension PersonalDataQueryProperty
     });
   }
 
+  QueryBuilder<PersonalData, DateTime?, QQueryOperations> birthDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'birthDate');
+    });
+  }
+
   QueryBuilder<PersonalData, String?, QQueryOperations> emailProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'email');
+    });
+  }
+
+  QueryBuilder<PersonalData, bool, QQueryOperations> hasCarProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasCar');
+    });
+  }
+
+  QueryBuilder<PersonalData, bool, QQueryOperations> hasMotorcycleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasMotorcycle');
+    });
+  }
+
+  QueryBuilder<PersonalData, bool, QQueryOperations>
+      hasRelocationAvailabilityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasRelocationAvailability');
+    });
+  }
+
+  QueryBuilder<PersonalData, bool, QQueryOperations>
+      hasTravelAvailabilityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasTravelAvailability');
+    });
+  }
+
+  QueryBuilder<PersonalData, List<String>, QQueryOperations>
+      licenseCategoriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'licenseCategories');
     });
   }
 

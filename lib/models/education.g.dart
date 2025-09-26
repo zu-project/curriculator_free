@@ -37,13 +37,18 @@ const EducationSchema = CollectionSchema(
       name: r'fieldOfStudy',
       type: IsarType.string,
     ),
-    r'institution': PropertySchema(
+    r'inProgress': PropertySchema(
       id: 4,
+      name: r'inProgress',
+      type: IsarType.bool,
+    ),
+    r'institution': PropertySchema(
+      id: 5,
       name: r'institution',
       type: IsarType.string,
     ),
     r'startDate': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'startDate',
       type: IsarType.dateTime,
     )
@@ -53,7 +58,21 @@ const EducationSchema = CollectionSchema(
   deserialize: _educationDeserialize,
   deserializeProp: _educationDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'startDate': IndexSchema(
+      id: 7723980484494730382,
+      name: r'startDate',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'startDate',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _educationGetId,
@@ -105,8 +124,9 @@ void _educationSerialize(
   writer.writeString(offsets[1], object.description);
   writer.writeDateTime(offsets[2], object.endDate);
   writer.writeString(offsets[3], object.fieldOfStudy);
-  writer.writeString(offsets[4], object.institution);
-  writer.writeDateTime(offsets[5], object.startDate);
+  writer.writeBool(offsets[4], object.inProgress);
+  writer.writeString(offsets[5], object.institution);
+  writer.writeDateTime(offsets[6], object.startDate);
 }
 
 Education _educationDeserialize(
@@ -121,8 +141,9 @@ Education _educationDeserialize(
   object.endDate = reader.readDateTimeOrNull(offsets[2]);
   object.fieldOfStudy = reader.readStringOrNull(offsets[3]);
   object.id = id;
-  object.institution = reader.readStringOrNull(offsets[4]);
-  object.startDate = reader.readDateTimeOrNull(offsets[5]);
+  object.inProgress = reader.readBool(offsets[4]);
+  object.institution = reader.readStringOrNull(offsets[5]);
+  object.startDate = reader.readDateTimeOrNull(offsets[6]);
   return object;
 }
 
@@ -142,8 +163,10 @@ P _educationDeserializeProp<P>(
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
+      return (reader.readStringOrNull(offset)) as P;
+    case 6:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -167,6 +190,14 @@ extension EducationQueryWhereSort
   QueryBuilder<Education, Education, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhere> anyStartDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'startDate'),
+      );
     });
   }
 }
@@ -233,6 +264,116 @@ extension EducationQueryWhere
         lower: lowerId,
         includeLower: includeLower,
         upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'startDate',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateEqualTo(
+      DateTime? startDate) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'startDate',
+        value: [startDate],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateNotEqualTo(
+      DateTime? startDate) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [],
+              upper: [startDate],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [startDate],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [startDate],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'startDate',
+              lower: [],
+              upper: [startDate],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateGreaterThan(
+    DateTime? startDate, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [startDate],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateLessThan(
+    DateTime? startDate, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [],
+        upper: [startDate],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterWhereClause> startDateBetween(
+    DateTime? lowerStartDate,
+    DateTime? upperStartDate, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'startDate',
+        lower: [lowerStartDate],
+        includeLower: includeLower,
+        upper: [upperStartDate],
         includeUpper: includeUpper,
       ));
     });
@@ -814,6 +955,16 @@ extension EducationQueryFilter
     });
   }
 
+  QueryBuilder<Education, Education, QAfterFilterCondition> inProgressEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'inProgress',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Education, Education, QAfterFilterCondition>
       institutionIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1093,6 +1244,18 @@ extension EducationQuerySortBy on QueryBuilder<Education, Education, QSortBy> {
     });
   }
 
+  QueryBuilder<Education, Education, QAfterSortBy> sortByInProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'inProgress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterSortBy> sortByInProgressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'inProgress', Sort.desc);
+    });
+  }
+
   QueryBuilder<Education, Education, QAfterSortBy> sortByInstitution() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'institution', Sort.asc);
@@ -1180,6 +1343,18 @@ extension EducationQuerySortThenBy
     });
   }
 
+  QueryBuilder<Education, Education, QAfterSortBy> thenByInProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'inProgress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Education, Education, QAfterSortBy> thenByInProgressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'inProgress', Sort.desc);
+    });
+  }
+
   QueryBuilder<Education, Education, QAfterSortBy> thenByInstitution() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'institution', Sort.asc);
@@ -1234,6 +1409,12 @@ extension EducationQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Education, Education, QDistinct> distinctByInProgress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'inProgress');
+    });
+  }
+
   QueryBuilder<Education, Education, QDistinct> distinctByInstitution(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1277,6 +1458,12 @@ extension EducationQueryProperty
   QueryBuilder<Education, String?, QQueryOperations> fieldOfStudyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fieldOfStudy');
+    });
+  }
+
+  QueryBuilder<Education, bool, QQueryOperations> inProgressProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'inProgress');
     });
   }
 
