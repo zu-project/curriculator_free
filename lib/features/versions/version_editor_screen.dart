@@ -15,18 +15,12 @@ import 'package:isar/isar.dart';
 /// Agrupa todos os dados necessários para a tela de edição.
 class VersionEditorDataBundle {
   final CurriculumVersion? versionToEdit;
+  final PersonalData? personalData; // Precisamos dos dados pessoais para saber o que mostrar
   final List<Experience> allExperiences;
   final List<Education> allEducations;
   final List<Skill> allSkills;
   final List<Language> allLanguages;
-
-  VersionEditorDataBundle({
-    this.versionToEdit,
-    required this.allExperiences,
-    required this.allEducations,
-    required this.allSkills,
-    required this.allLanguages,
-  });
+  VersionEditorDataBundle({this.versionToEdit, this.personalData, required this.allExperiences, required this.allEducations, required this.allSkills, required this.allLanguages});
 }
 
 /// Provider para o repositório que contém a lógica de busca e salvamento.
@@ -152,15 +146,20 @@ class VersionEditorScreen extends ConsumerStatefulWidget {
 class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-
-  // Variáveis de estado para guardar os IDs dos itens selecionados
   final Set<int> _selectedExperienceIds = {};
   final Set<int> _selectedEducationIds = {};
   final Set<int> _selectedSkillIds = {};
   final Set<int> _selectedLanguageIds = {};
 
+  // --- NOVOS ESTADOS PARA AS OPÇÕES ---
+  bool _includeSummary = true;
+  bool _includeAvailability = true;
+  bool _includeVehicle = true;
+  bool _includeLicense = true;
+  bool _includeSocialLinks = true;
+  bool _includePhoto = true;
+
   bool _isSaving = false;
-  // Flag para garantir que os dados iniciais só sejam carregados uma vez
   bool _isInitialDataLoaded = false;
 
   @override
@@ -196,7 +195,7 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
           content: Text('Versão salva com sucesso!'),
           backgroundColor: Colors.green,
         ));
-        context.pop();
+        context.go('/');
       }
 
     } catch (e, stack) {
@@ -270,7 +269,11 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
                 _buildSection<Education>(
                     title: 'Formação Acadêmica', items: bundle.allEducations,
                     selectedIds: _selectedEducationIds, idAccessor: (item) => item.id,
-                    displayBuilder: (edu) => ListTile(title: Text(edu.degree), subtitle: Text(edu.institution))),
+                  displayBuilder: (edu) => ListTile(
+                    title: Text('${edu.degree} em ${edu.fieldOfStudy}'), // Mostra ambos os campos
+                    subtitle: Text(edu.institution),
+                  ),
+                ),
                 _buildSection<Skill>(
                     title: 'Habilidades', items: bundle.allSkills,
                     selectedIds: _selectedSkillIds, idAccessor: (item) => item.id,

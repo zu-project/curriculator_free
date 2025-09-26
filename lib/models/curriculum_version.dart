@@ -51,6 +51,14 @@ class CurriculumVersion {
 
   /// O último tamanho de fonte base usado.
   double? fontSize;
+  // Armazenam as opções de inclusão para esta versão específica.
+
+  bool includeSummary = true;
+  bool includeAvailability = true;
+  bool includeVehicle = true;
+  bool includeLicense = true;
+  bool includeSocialLinks = true;
+  bool includePhoto = true;
 
   // --- Links para os Dados ---
   // Estes campos não armazenam os objetos, apenas referências (ponteiros) para eles.

@@ -32,18 +32,48 @@ const CurriculumVersionSchema = CollectionSchema(
       name: r'fontSize',
       type: IsarType.double,
     ),
-    r'languageCode': PropertySchema(
+    r'includeAvailability': PropertySchema(
       id: 3,
+      name: r'includeAvailability',
+      type: IsarType.bool,
+    ),
+    r'includeLicense': PropertySchema(
+      id: 4,
+      name: r'includeLicense',
+      type: IsarType.bool,
+    ),
+    r'includePhoto': PropertySchema(
+      id: 5,
+      name: r'includePhoto',
+      type: IsarType.bool,
+    ),
+    r'includeSocialLinks': PropertySchema(
+      id: 6,
+      name: r'includeSocialLinks',
+      type: IsarType.bool,
+    ),
+    r'includeSummary': PropertySchema(
+      id: 7,
+      name: r'includeSummary',
+      type: IsarType.bool,
+    ),
+    r'includeVehicle': PropertySchema(
+      id: 8,
+      name: r'includeVehicle',
+      type: IsarType.bool,
+    ),
+    r'languageCode': PropertySchema(
+      id: 9,
       name: r'languageCode',
       type: IsarType.string,
     ),
     r'lastUsedTemplate': PropertySchema(
-      id: 4,
+      id: 10,
       name: r'lastUsedTemplate',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 5,
+      id: 11,
       name: r'name',
       type: IsarType.string,
     )
@@ -139,9 +169,15 @@ void _curriculumVersionSerialize(
   writer.writeString(offsets[0], object.accentColorHex);
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeDouble(offsets[2], object.fontSize);
-  writer.writeString(offsets[3], object.languageCode);
-  writer.writeString(offsets[4], object.lastUsedTemplate);
-  writer.writeString(offsets[5], object.name);
+  writer.writeBool(offsets[3], object.includeAvailability);
+  writer.writeBool(offsets[4], object.includeLicense);
+  writer.writeBool(offsets[5], object.includePhoto);
+  writer.writeBool(offsets[6], object.includeSocialLinks);
+  writer.writeBool(offsets[7], object.includeSummary);
+  writer.writeBool(offsets[8], object.includeVehicle);
+  writer.writeString(offsets[9], object.languageCode);
+  writer.writeString(offsets[10], object.lastUsedTemplate);
+  writer.writeString(offsets[11], object.name);
 }
 
 CurriculumVersion _curriculumVersionDeserialize(
@@ -155,9 +191,15 @@ CurriculumVersion _curriculumVersionDeserialize(
   object.createdAt = reader.readDateTime(offsets[1]);
   object.fontSize = reader.readDoubleOrNull(offsets[2]);
   object.id = id;
-  object.languageCode = reader.readString(offsets[3]);
-  object.lastUsedTemplate = reader.readStringOrNull(offsets[4]);
-  object.name = reader.readString(offsets[5]);
+  object.includeAvailability = reader.readBool(offsets[3]);
+  object.includeLicense = reader.readBool(offsets[4]);
+  object.includePhoto = reader.readBool(offsets[5]);
+  object.includeSocialLinks = reader.readBool(offsets[6]);
+  object.includeSummary = reader.readBool(offsets[7]);
+  object.includeVehicle = reader.readBool(offsets[8]);
+  object.languageCode = reader.readString(offsets[9]);
+  object.lastUsedTemplate = reader.readStringOrNull(offsets[10]);
+  object.name = reader.readString(offsets[11]);
   return object;
 }
 
@@ -175,10 +217,22 @@ P _curriculumVersionDeserializeProp<P>(
     case 2:
       return (reader.readDoubleOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
+      return (reader.readBool(offset)) as P;
+    case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
+    case 8:
+      return (reader.readBool(offset)) as P;
+    case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -744,6 +798,66 @@ extension CurriculumVersionQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includeAvailabilityEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includeAvailability',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includeLicenseEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includeLicense',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includePhotoEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includePhoto',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includeSocialLinksEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includeSocialLinks',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includeSummaryEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includeSummary',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterFilterCondition>
+      includeVehicleEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'includeVehicle',
+        value: value,
       ));
     });
   }
@@ -1484,6 +1598,90 @@ extension CurriculumVersionQuerySortBy
   }
 
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeAvailability', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeLicense() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeLicense', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeLicenseDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeLicense', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludePhoto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includePhoto', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludePhotoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includePhoto', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeSocialLinks() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSocialLinks', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeSocialLinksDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSocialLinks', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeSummary() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSummary', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeSummaryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSummary', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeVehicle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeVehicle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      sortByIncludeVehicleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeVehicle', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
       sortByLanguageCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'languageCode', Sort.asc);
@@ -1584,6 +1782,90 @@ extension CurriculumVersionQuerySortThenBy
   }
 
   QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeAvailability', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeAvailabilityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeAvailability', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeLicense() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeLicense', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeLicenseDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeLicense', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludePhoto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includePhoto', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludePhotoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includePhoto', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeSocialLinks() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSocialLinks', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeSocialLinksDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSocialLinks', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeSummary() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSummary', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeSummaryDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeSummary', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeVehicle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeVehicle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
+      thenByIncludeVehicleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'includeVehicle', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QAfterSortBy>
       thenByLanguageCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'languageCode', Sort.asc);
@@ -1651,6 +1933,48 @@ extension CurriculumVersionQueryWhereDistinct
   }
 
   QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludeAvailability() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includeAvailability');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludeLicense() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includeLicense');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludePhoto() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includePhoto');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludeSocialLinks() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includeSocialLinks');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludeSummary() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includeSummary');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
+      distinctByIncludeVehicle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'includeVehicle');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, CurriculumVersion, QDistinct>
       distinctByLanguageCode({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'languageCode', caseSensitive: caseSensitive);
@@ -1699,6 +2023,48 @@ extension CurriculumVersionQueryProperty
       fontSizeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fontSize');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includeAvailabilityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includeAvailability');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includeLicenseProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includeLicense');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includePhotoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includePhoto');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includeSocialLinksProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includeSocialLinks');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includeSummaryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includeSummary');
+    });
+  }
+
+  QueryBuilder<CurriculumVersion, bool, QQueryOperations>
+      includeVehicleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'includeVehicle');
     });
   }
 

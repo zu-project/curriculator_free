@@ -46,49 +46,51 @@ class SkillsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final skillsAsyncValue = ref.watch(skillsStreamProvider);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 24.0),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: skillsAsyncValue.when(
-            data: (skills) {
-              if (skills.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Nenhuma habilidade cadastrada ainda.',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('Adicionar Primeira Habilidade'),
-                        onPressed: () => _showSkillDialog(context, ref),
-                      ),
-                    ],
-                  ),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.add),
+        label: const Text('Adicionar Habilidade'),
+        onPressed: () => _showSkillDialog(context, ref),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: skillsAsyncValue.when(
+              data: (skills) {
+                if (skills.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Nenhuma habilidade cadastrada ainda.', style: TextStyle(fontSize: 16)),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text('Adicionar Primeira Habilidade'),
+                          onPressed: () => _showSkillDialog(context, ref),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final hardSkills = skills.where((s) => s.type == SkillType.hardSkill).toList();
+                final softSkills = skills.where((s) => s.type == SkillType.softSkill).toList();
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 80), // Padding inferior para o FAB
+                  children: [
+                    _buildSkillSection(context, ref, 'Hard Skills (Técnicas)', hardSkills),
+                    const SizedBox(height: 24),
+                    _buildSkillSection(context, ref, 'Soft Skills (Comportamentais)', softSkills),
+                  ],
                 );
-              }
-
-              // Separa as habilidades em duas listas
-              final hardSkills = skills.where((s) => s.type == SkillType.hardSkill).toList();
-              final softSkills = skills.where((s) => s.type == SkillType.softSkill).toList();
-
-              return ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                children: [
-                  _buildSkillSection(context, ref, 'Hard Skills (Técnicas)', hardSkills),
-                  const SizedBox(height: 24),
-                  _buildSkillSection(context, ref, 'Soft Skills (Comportamentais)', softSkills),
-                  const SizedBox(height: 80), // Espaço para o FloatingActionButton
-                ],
-              );
-            },
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stackTrace) => Text('Ocorreu um erro: $error'),
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (error, stackTrace) => Text('Ocorreu um erro: $error'),
+            ),
           ),
         ),
       ),
