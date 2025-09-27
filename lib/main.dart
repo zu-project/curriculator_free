@@ -30,11 +30,11 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       locale: const Locale('pt', 'BR'),
 
-      // --- CORREÇÃO 2: Remover o 'const' daqui e adicionar a importação acima ---
+      // --- CORREÇÃO 2: Adicionar o MonthYearPickerLocalizations.delegate ---
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate, // Adicionado para completude
+        GlobalCupertinoLocalizations.delegate,
         MonthYearPickerLocalizations.delegate,
       ],
       supportedLocales: const [

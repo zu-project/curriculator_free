@@ -1,5 +1,5 @@
 // lib/features/export/cv_template.dart
-// VERSÃO FINAL PARA A UI: Foco em ser rolável e não quebrar.
+// VERSÃO FINAL CORRIGIDA: Espaçamento entre as seções reduzido.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -54,78 +54,62 @@ class CvTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Para ter um fundo branco consistente por trás do conteúdo rolável
     return Container(
       width: 595,
       color: Colors.white,
-      // Usamos um LayoutBuilder para obter a altura máxima disponível para a simulação de página.
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // A altura da "página" visível é a altura da área de preview.
-          // O conteúdo interno poderá ser maior e rolável.
-          return SizedBox(
-            height: constraints.maxHeight,
-            child: _buildPageContent(),
-          );
-        },
+      child: DefaultTextStyle(
+        style: TextStyle(fontSize: options.fontSize, color: const Color(0xFF333333), fontFamily: 'Roboto'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHeader(),
+            Padding(
+              padding: _getCoreContentPadding(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: _buildCoreContent(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPageContent() {
-    // Tratamento especial para o header do template moderno
+  EdgeInsets _getCoreContentPadding() {
     if (options.templateName == 'Moderno') {
-      return DefaultTextStyle(
-        style: TextStyle(fontSize: options.fontSize, color: const Color(0xFF333333), fontFamily: 'Roboto'),
+      return EdgeInsets.only(left: options.margins.left, right: options.margins.right, bottom: options.margins.bottom);
+    }
+    return options.margins;
+  }
+
+  Widget _buildHeader() {
+    if (options.templateName != 'Moderno') {
+      // Para o Clássico, Minimalista e Funcional, o header está dentro de um Padding geral.
+      // Adicionamos um padding extra no fundo para separá-lo do conteúdo.
+      return Padding(
+        padding: options.margins.copyWith(bottom: 0), // Remove o padding inferior original
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildModernHeader(), // Header fica fixo no topo
-            Expanded( // A área de conteúdo ocupa o resto e é rolável
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.only(left: options.margins.left, right: options.margins.right, bottom: options.margins.bottom),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _buildCoreContent(),
-                  ),
-                ),
-              ),
-            ),
+            _buildHeaderContent(),
+            SizedBox(height: options.margins.bottom / 2), // Adiciona um espaço antes do conteúdo
           ],
         ),
       );
     }
-
-    // Estrutura padrão para os outros templates
-    return DefaultTextStyle(
-      style: TextStyle(fontSize: options.fontSize, color: const Color(0xFF333333), fontFamily: 'Roboto'),
-      child: Padding(
-        padding: options.margins,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(), // Header fixo
-            Expanded( // Conteúdo rolável
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _buildCoreContent(),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // O header Moderno já tem seu próprio padding e espaçamento.
+    return _buildHeaderContent();
   }
 
-  // O resto do arquivo (métodos de build de seções) permanece o mesmo.
-  // Cole o restante do seu cv_template.dart aqui.
-  Widget _buildHeader() {
+  Widget _buildHeaderContent() {
     switch (options.templateName) {
       case 'Funcional': return _buildFunctionalHeader();
       case 'Minimalista': return _buildMinimalistHeader();
+      case 'Moderno': return _buildModernHeader();
       default: return _buildClassicHeader();
     }
   }
@@ -178,6 +162,7 @@ class CvTemplate extends StatelessWidget {
     return Container(
       color: options.accentColor,
       padding: EdgeInsets.fromLTRB(options.margins.left, options.margins.top, options.margins.right, 20),
+      width: double.infinity,
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -186,6 +171,7 @@ class CvTemplate extends StatelessWidget {
               Text(data.experiences.firstWhere((e) => e.isCurrent).jobTitle, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: options.fontSize + 4)),
             Divider(color: Colors.white.withOpacity(0.5), height: 24, thickness: 0.8),
             _buildContactAndOtherInfo(p, useWhiteText: true),
+            const SizedBox(height: 10), // Espaço extra no final do header
           ]
       ),
     );
@@ -218,9 +204,15 @@ class CvTemplate extends StatelessWidget {
     );
   }
 
+  // ***** AQUI ESTÁ A ALTERAÇÃO *****
   Widget _buildSection({required String title, required Widget child, bool useModernTitle = false, required Color titleColor}) {
+    // Para a primeira seção, usamos um padding menor. Para as outras, um pouco maior.
+    final bool isFirstSection = title.toLowerCase().contains('resumo');
+    final double topPadding = isFirstSection ? 0 : 12;
+
     return Padding(
-      padding: const EdgeInsets.only(top: 20),
+      // Padding dinâmico: zero para a primeira seção, 12 para as demais
+      padding: EdgeInsets.only(top: topPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

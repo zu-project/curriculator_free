@@ -1,141 +1,152 @@
 // lib/features/export/pdf_generator_service.dart
-// VERSÃO FINAL E CORRIGIDA: Carrega todas as fontes necessárias.
+// VERSÃO FINAL E SEGURA: Abordagem de layout simplificada para garantir estabilidade.
 
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 
-import 'cv_template.dart';
 import 'package:curriculator_free/models/education.dart';
 import 'package:curriculator_free/models/experience.dart';
 import 'package:curriculator_free/models/language.dart';
 import 'package:curriculator_free/models/personal_data.dart';
-import 'package:curriculator_free/models/skill.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+import 'cv_template.dart';
 
 class PdfGeneratorService {
   final CurriculumDataBundle data;
   final TemplateOptions options;
   final _dateFormat = DateFormat('MM/yyyy', 'pt_BR');
 
+  pw.Font? _regularFont;
+  pw.Font? _boldFont;
+  pw.Font? _italicFont;
+
   PdfGeneratorService(this.data, this.options);
 
   Future<Uint8List> generatePdf() async {
-    final doc = pw.Document(author: 'Curriculator Free', title: 'Currículo de ${data.personalData?.name}');
+    final doc = pw.Document();
 
-    // --- INÍCIO DA CORREÇÃO: CARREGAR TODAS AS VARIANTES DA FONTE ---
-    final fontRegular = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
-    final fontBold = await rootBundle.load("assets/fonts/Roboto-Bold.ttf");
-    final fontItalic = await rootBundle.load("assets/fonts/Roboto-Italic.ttf");
-    final fontBoldItalic = await rootBundle.load("assets/fonts/Roboto-BoldItalic.ttf");
+    _regularFont = await PdfGoogleFonts.robotoRegular();
+    _boldFont = await PdfGoogleFonts.robotoBold();
+    _italicFont = await PdfGoogleFonts.robotoItalic();
 
     final theme = pw.ThemeData.withFont(
-      base: pw.Font.ttf(fontRegular),
-      bold: pw.Font.ttf(fontBold),
-      italic: pw.Font.ttf(fontItalic),
-      boldItalic: pw.Font.ttf(fontBoldItalic),
+      base: _regularFont!,
+      bold: _boldFont!,
+      italic: _italicFont!,
     );
-    // --- FIM DA CORREÇÃO ---
 
+    // *** MUDANÇA ESTRUTURAL E SOLUÇÃO FINAL ***
+    // Usamos UMA ÚNICA abordagem para TODOS os templates.
+    // O MultiPage tem margens, e todo o conteúdo é renderizado dentro delas.
+    // Isso remove toda a complexidade que estava causando o erro de layout.
     doc.addPage(
       pw.MultiPage(
-          theme: theme,
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.fromLTRB(
-              options.margins.left,
-              options.margins.top,
-              options.margins.right,
-              options.margins.bottom
-          ),
-          build: (context) {
-            final List<pw.Widget> content = [];
-
-            // O template moderno tem um cabeçalho que precisa ser tratado fora do fluxo normal
-            if (options.templateName != 'Moderno') {
-              content.add(_buildHeader());
-            }
-
-            content.addAll(_buildCoreContent());
-
-            return content;
-          },
-          // O cabeçalho do template moderno é colocado aqui para que ele possa "quebrar" as margens
-          header: (context) {
-            if (options.templateName == 'Moderno') {
-              return _buildModernHeader();
-            }
-            return pw.SizedBox.shrink();
-          }
+        theme: theme,
+        pageFormat: PdfPageFormat.a4,
+        margin: _getPdfMargins(), // Margens definidas para todos.
+        build: (context) {
+          // A lista de widgets é construída de forma linear e simples.
+          return [
+            _buildHeader(context),
+            ..._buildCoreContent(context),
+          ];
+        },
       ),
     );
 
-    return await doc.save();
+    return doc.save();
   }
 
-  // O resto do arquivo permanece o mesmo, a lógica de layout já está correta.
-  pw.Widget _buildHeader() {
-    switch (options.templateName) {
-      case 'Funcional': return _buildFunctionalHeader();
-      case 'Minimalista': return _buildMinimalistHeader();
-      default: return _buildClassicHeader();
+  // --- MÉTODOS DE CONSTRUÇÃO (versão para o pacote PDF) ---
+
+  pw.EdgeInsets _getPdfMargins() {
+    switch (options.marginPreset) {
+      case 'Estreita': return const pw.EdgeInsets.all(35);
+      case 'Larga': return const pw.EdgeInsets.all(70);
+      default: return const pw.EdgeInsets.all(50);
     }
   }
 
-  List<pw.Widget> _buildCoreContent() {
-    final bool useModernTitle = ['Moderno', 'Funcional'].contains(options.templateName);
-    final PdfColor titleColor = options.templateName == 'Minimalista' ? PdfColors.black : PdfColor.fromInt(options.accentColor.value);
-    final List<pw.Widget> sections = [];
-    if (options.includeSummary && (data.personalData?.summary?.isNotEmpty ?? false)) { sections.add(_buildSection(title: useModernTitle ? 'RESUMO' : 'Resumo Profissional', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildSummary())); }
-    if (data.experiences.isNotEmpty) { sections.add(_buildSection(title: useModernTitle ? 'EXPERIÊNCIA' : 'Experiência Profissional', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildExperienceList())); }
-    if (data.educations.isNotEmpty) { sections.add(_buildSection(title: useModernTitle ? 'FORMAÇÃO' : 'Formação Acadêmica', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildEducationList())); }
-    if (data.skills.isNotEmpty) { sections.add(_buildSection(title: useModernTitle ? 'HABILIDADES' : 'Habilidades', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildSkillList())); }
-    if (data.languages.isNotEmpty) { sections.add(_buildSection(title: useModernTitle ? 'IDIOMAS' : 'Idiomas', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildLanguageList())); }
-    return sections;
+  PdfColor get _accentPdfColor => PdfColor.fromInt(options.accentColor.value);
+
+  pw.Widget _buildHeader(pw.Context context) {
+    // A lógica para decidir qual header construir permanece, agora incluindo o Moderno.
+    switch (options.templateName) {
+      case 'Moderno': return _buildModernHeader(context);
+      case 'Funcional': return _buildFunctionalHeader(context);
+      case 'Minimalista': return _buildMinimalistHeader(context);
+      default: return _buildClassicHeader(context);
+    }
   }
 
-  pw.Widget _buildClassicHeader() {
+  List<pw.Widget> _buildCoreContent(pw.Context context) {
+    final bool useModernTitle = ['Moderno', 'Funcional'].contains(options.templateName);
+    final PdfColor titleColor = options.templateName == 'Minimalista' ? PdfColors.black : _accentPdfColor;
+    return [
+      if (options.includeSummary && (data.personalData?.summary?.isNotEmpty ?? false))
+        _buildSection(title: useModernTitle ? 'RESUMO' : 'Resumo Profissional', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildSummary()),
+      if (data.experiences.isNotEmpty)
+        _buildSection(title: useModernTitle ? 'EXPERIÊNCIA' : 'Experiência Profissional', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildExperienceList()),
+      if (data.educations.isNotEmpty)
+        _buildSection(title: useModernTitle ? 'FORMAÇÃO' : 'Formação Acadêmica', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildEducationList()),
+      if (data.skills.isNotEmpty)
+        _buildSection(title: useModernTitle ? 'HABILIDADES' : 'Habilidades', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildSkillList()),
+      if (data.languages.isNotEmpty)
+        _buildSection(title: useModernTitle ? 'IDIOMAS' : 'Idiomas', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildLanguageList()),
+    ];
+  }
+
+  pw.Widget _buildClassicHeader(pw.Context context) {
     final p = data.personalData;
     if (p == null) return pw.SizedBox.shrink();
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 20),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(p.name, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(options.accentColor.value))),
-                pw.SizedBox(height: 12),
-                _buildContactAndOtherInfo(p),
-              ],
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(p.name, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: _accentPdfColor)),
+              pw.SizedBox(height: 12),
+              _buildContactAndOtherInfo(p),
+            ],
+          ),
+        ),
+        if (options.includePhoto && p.photoPath != null && File(p.photoPath!).existsSync())
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 24),
+            child: pw.ClipOval(
+              child: pw.Image(
+                pw.MemoryImage(File(p.photoPath!).readAsBytesSync()),
+                width: 100,
+                height: 100,
+                fit: pw.BoxFit.cover,
+              ),
             ),
           ),
-          if (options.includePhoto && p.photoPath != null && File(p.photoPath!).existsSync())
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(left: 24),
-              child: pw.ClipOval(child: pw.Image(pw.MemoryImage(File(p.photoPath!).readAsBytesSync()), width: 100, height: 100, fit: pw.BoxFit.cover)),
-            ),
-        ],
-      ),
+      ],
     );
   }
 
-  pw.Widget _buildModernHeader() {
+  // Versão segura do header Moderno. Usa um Container simples.
+  pw.Widget _buildModernHeader(pw.Context context) {
     final p = data.personalData;
     if (p == null) return pw.SizedBox.shrink();
-    final accent = PdfColor.fromInt(options.accentColor.value);
+
+    // O Container agora vive dentro das margens da página.
+    // Usamos padding para o espaço interno.
     return pw.Container(
-      color: accent,
-      margin: const pw.EdgeInsets.only(bottom: 20),
-      padding: pw.EdgeInsets.fromLTRB(options.margins.left, options.margins.top, options.margins.right, 20),
+      color: _accentPdfColor,
+      padding: const pw.EdgeInsets.all(20),
       child: pw.Column(
-          mainAxisSize: pw.MainAxisSize.min,
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(p.name, style: pw.TextStyle(fontSize: options.fontSize + 20, fontWeight: pw.FontWeight.bold, color: PdfColors.white, height: 1.2)),
+            pw.Text(p.name, style: pw.TextStyle(fontSize: options.fontSize + 20, fontWeight: pw.FontWeight.bold, color: PdfColors.white, lineSpacing: 2)),
             if (data.experiences.where((e) => e.isCurrent).isNotEmpty)
               pw.Text(data.experiences.firstWhere((e) => e.isCurrent).jobTitle, style: pw.TextStyle(color: PdfColors.white.shade(0.8), fontSize: options.fontSize + 4)),
             pw.Divider(color: PdfColors.white.shade(0.5), height: 24, thickness: 0.8),
@@ -145,42 +156,44 @@ class PdfGeneratorService {
     );
   }
 
-  pw.Widget _buildFunctionalHeader() {
+
+  pw.Widget _buildFunctionalHeader(pw.Context context) {
     final p = data.personalData;
     if (p == null) return pw.SizedBox.shrink();
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 20),
-      child: pw.Column(
-          children: [
-            if (options.includePhoto && p.photoPath != null && File(p.photoPath!).existsSync())
-              pw.ClipOval(child: pw.Image(pw.MemoryImage(File(p.photoPath!).readAsBytesSync()), width: 110, height: 110, fit: pw.BoxFit.cover)),
-            pw.SizedBox(height: 12),
-            pw.Text(p.name, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(options.accentColor.value))),
-            pw.SizedBox(height: 8),
-            _buildContactAndOtherInfo(p, isCentered: true),
-          ]
-      ),
+    return pw.Column(
+        children: [
+          if (options.includePhoto && p.photoPath != null && File(p.photoPath!).existsSync())
+            pw.ClipOval(
+              child: pw.Image(
+                pw.MemoryImage(File(p.photoPath!).readAsBytesSync()),
+                width: 110,
+                height: 110,
+                fit: pw.BoxFit.cover,
+              ),
+            ),
+          pw.SizedBox(height: 12),
+          pw.Text(p.name, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: _accentPdfColor)),
+          pw.SizedBox(height: 8),
+          _buildContactAndOtherInfo(p, isCentered: true),
+        ]
     );
   }
 
-  pw.Widget _buildMinimalistHeader() {
+  pw.Widget _buildMinimalistHeader(pw.Context context) {
     final p = data.personalData;
     if (p == null) return pw.SizedBox.shrink();
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 20),
-      child: pw.Column(
-          children: [
-            pw.Text(p.name.toUpperCase(), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: PdfColors.black, letterSpacing: 2)),
-            pw.SizedBox(height: 8),
-            _buildContactAndOtherInfo(p, isCentered: true, useMinimalistStyle: true),
-          ]
-      ),
+    return pw.Column(
+        children: [
+          pw.Text(p.name.toUpperCase(), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: options.fontSize + 16, fontWeight: pw.FontWeight.bold, color: PdfColors.black, letterSpacing: 2)),
+          pw.SizedBox(height: 8),
+          _buildContactAndOtherInfo(p, isCentered: true, useMinimalistStyle: true),
+        ]
     );
   }
 
   pw.Widget _buildSection({required String title, required pw.Widget child, bool useModernTitle = false, required PdfColor titleColor}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(top: 15, bottom: 5),
+      padding: const pw.EdgeInsets.only(top: 20),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -193,40 +206,102 @@ class PdfGeneratorService {
     );
   }
 
-  pw.Widget _buildSummary() => pw.Text(data.personalData!.summary!, style: pw.TextStyle(fontSize: options.fontSize, height: 1.5, color: PdfColors.grey800));
+  pw.Widget _buildSummary() => pw.Text(data.personalData!.summary!, style: pw.TextStyle(fontSize: options.fontSize, lineSpacing: 1.5, color: PdfColors.black.shade(0.87)));
+
   pw.Widget _buildExperienceList() => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: data.experiences.map((exp) => pw.Padding(padding: const pw.EdgeInsets.only(bottom: 14), child: _buildExperienceItem(exp))).toList());
-  pw.Widget _buildExperienceItem(Experience exp) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-    pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [ pw.Expanded(child: pw.Text('${exp.jobTitle} at ${exp.company}', style: pw.TextStyle(fontSize: options.fontSize + 1, fontWeight: pw.FontWeight.bold))), if (exp.startDate != null) pw.Text('${_dateFormat.format(exp.startDate!)} - ${exp.isCurrent ? 'Presente' : (exp.endDate != null ? _dateFormat.format(exp.endDate!) : '')}', style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey700)) ]),
-    if(exp.location != null && exp.location!.isNotEmpty) pw.Text(exp.location!, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic)),
-    if (exp.description?.isNotEmpty ?? false) pw.Padding(padding: const pw.EdgeInsets.only(top: 4), child: pw.Text(exp.description!, style: pw.TextStyle(fontSize: options.fontSize, height: 1.4, color: PdfColors.grey800))),
-  ]);
+
+  pw.Widget _buildExperienceItem(Experience exp) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Expanded(child: pw.Text('${exp.jobTitle} at ${exp.company}', style: pw.TextStyle(fontSize: options.fontSize + 1, fontWeight: pw.FontWeight.bold))),
+          if (exp.startDate != null)
+            pw.Text('${_dateFormat.format(exp.startDate!)} - ${exp.isCurrent ? 'Presente' : (exp.endDate != null ? _dateFormat.format(exp.endDate!) : '')}', style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey700))
+        ]),
+        if(exp.location != null && exp.location!.isNotEmpty)
+          pw.Text(exp.location!, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic)),
+        if (exp.description?.isNotEmpty ?? false)
+          pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 4),
+              child: pw.Text(exp.description!, style: pw.TextStyle(fontSize: options.fontSize, lineSpacing: 1.4, color: PdfColors.black.shade(0.8)))
+          ),
+      ]
+  );
+
   pw.Widget _buildEducationList() => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: data.educations.map((edu) => pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: _buildEducationItem(edu))).toList());
-  pw.Widget _buildEducationItem(Education edu) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-    pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [ pw.Expanded(child: pw.Text('${edu.degree} in ${edu.fieldOfStudy}', style: pw.TextStyle(fontSize: options.fontSize + 1, fontWeight: pw.FontWeight.bold))), if (edu.startDate != null) pw.Text('${_dateFormat.format(edu.startDate!)} - ${edu.inProgress ? 'Presente' : (edu.endDate != null ? _dateFormat.format(edu.endDate!) : '')}', style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey700)) ]),
-    pw.Text(edu.institution, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic)),
-  ]);
-  pw.Widget _buildSkillList() => pw.Wrap(spacing: 8, runSpacing: 4, children: [ for (final skill in data.skills) pw.Container(padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: pw.BoxDecoration(color: PdfColor.fromInt(options.accentColor.value).shade(0.1), borderRadius: pw.BorderRadius.circular(4)), child: pw.Text(skill.name, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.black))) ]);
-  pw.Widget _buildLanguageList() => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: data.languages.map((lang) => pw.Text('• ${lang.languageName} (${lang.proficiency.displayName})', style: pw.TextStyle(fontSize: options.fontSize, height: 1.6))).toList());
+
+  pw.Widget _buildEducationItem(Education edu) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Expanded(child: pw.Text('${edu.degree} in ${edu.fieldOfStudy}', style: pw.TextStyle(fontSize: options.fontSize + 1, fontWeight: pw.FontWeight.bold))),
+          if (edu.startDate != null)
+            pw.Text('${_dateFormat.format(edu.startDate!)} - ${edu.inProgress ? 'Presente' : (edu.endDate != null ? _dateFormat.format(edu.endDate!) : '')}', style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey700))
+        ]),
+        pw.Text(edu.institution, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic)),
+      ]
+  );
+
+  pw.Widget _buildSkillList() => pw.Wrap(
+      spacing: 8, runSpacing: 4, children: [
+    for (final skill in data.skills)
+      pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: pw.BoxDecoration(
+            color: _accentPdfColor.shade(0.1),
+            border: pw.Border.all(color: _accentPdfColor.shade(0.2)),
+            borderRadius: pw.BorderRadius.circular(12)
+        ),
+        child: pw.Text(skill.name, style: pw.TextStyle(fontSize: options.fontSize, color: PdfColors.black.shade(0.87))),
+      )
+  ]
+  );
+
+  pw.Widget _buildLanguageList() => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: data.languages.map((lang) =>
+          pw.Text('• ${lang.languageName} (${lang.proficiency.displayName})', style: pw.TextStyle(fontSize: options.fontSize, lineSpacing: 1.6))
+      ).toList()
+  );
+
   pw.Widget _buildContactAndOtherInfo(PersonalData p, {bool isCentered = false, bool useWhiteText = false, bool useMinimalistStyle = false}) {
     final textColor = useWhiteText ? PdfColors.white.shade(0.9) : PdfColors.grey700;
     final linkColor = useWhiteText ? PdfColors.white : PdfColors.blue800;
-    final contactWidgets = <pw.Widget>[];
-    if (p.email.isNotEmpty) contactWidgets.add(pw.Text(p.email, style: pw.TextStyle(color: textColor)));
-    if (p.phone?.isNotEmpty ?? false) contactWidgets.add(pw.Text(p.phone!, style: pw.TextStyle(color: textColor)));
-    if (p.address?.isNotEmpty ?? false) contactWidgets.add(pw.Text(p.address!, style: pw.TextStyle(color: textColor)));
-    if (options.includeSocialLinks && (p.linkedinUrl?.isNotEmpty ?? false)) { contactWidgets.add(pw.UrlLink(destination: p.linkedinUrl!, child: pw.Text(p.linkedinUrl!.replaceAll('https://www.', '').replaceAll('https://', ''), style: pw.TextStyle(decoration: pw.TextDecoration.underline, color: linkColor)))); }
-    if (options.includeSocialLinks && (p.portfolioUrl?.isNotEmpty ?? false)) { contactWidgets.add(pw.UrlLink(destination: p.portfolioUrl!, child: pw.Text(p.portfolioUrl!.replaceAll('https://www.', '').replaceAll('https://', ''), style: pw.TextStyle(decoration: pw.TextDecoration.underline, color: linkColor)))); }
+    final separator = useMinimalistStyle ? ' | ' : ' • ';
+
+    final contactItems = <pw.Widget>[];
+    if (p.email.isNotEmpty) contactItems.add(pw.Text(p.email, style: pw.TextStyle(color: textColor)));
+    if (p.phone?.isNotEmpty ?? false) contactItems.add(pw.Text(p.phone!, style: pw.TextStyle(color: textColor)));
+    if (p.address?.isNotEmpty ?? false) contactItems.add(pw.Text(p.address!, style: pw.TextStyle(color: textColor)));
+    if (options.includeSocialLinks && (p.linkedinUrl?.isNotEmpty ?? false)) contactItems.add(pw.UrlLink(destination: p.linkedinUrl!, child: pw.Text(p.linkedinUrl!.replaceAll('https://www.', ''), style: pw.TextStyle(decoration: pw.TextDecoration.underline, color: linkColor))));
+    if (options.includeSocialLinks && (p.portfolioUrl?.isNotEmpty ?? false)) contactItems.add(pw.UrlLink(destination: p.portfolioUrl!, child: pw.Text(p.portfolioUrl!.replaceAll('https://www.', ''), style: pw.TextStyle(decoration: pw.TextDecoration.underline, color: linkColor))));
+
     final otherItems = <String>[];
     if (options.includeAvailability && p.hasTravelAvailability) otherItems.add('Disponibilidade para viagens');
     if (options.includeAvailability && p.hasRelocationAvailability) otherItems.add('Disponibilidade para mudança');
     if (options.includeVehicle && p.hasCar) otherItems.add('Possui carro');
     if (options.includeVehicle && p.hasMotorcycle) otherItems.add('Possui moto');
     if (options.includeLicense && p.licenseCategories.isNotEmpty) otherItems.add('CNH: ${p.licenseCategories.join(', ')}');
-    final separator = pw.Text(useMinimalistStyle ? ' | ' : ' • ', style: pw.TextStyle(color: textColor.shade(0.5)));
-    final List<pw.Widget> children = [];
-    for (int i = 0; i < contactWidgets.length; i++) { children.add(contactWidgets[i]); if (i < contactWidgets.length - 1) { children.add(separator); } }
-    if (contactWidgets.isNotEmpty && otherItems.isNotEmpty) { children.add(separator); }
-    children.addAll(otherItems.map((item) => pw.Text(item, style: pw.TextStyle(fontSize: options.fontSize - 1, color: textColor))));
-    return pw.Wrap(alignment: isCentered ? pw.WrapAlignment.center : pw.WrapAlignment.start, crossAxisAlignment: pw.WrapCrossAlignment.center, spacing: 8, runSpacing: 4, children: children);
+
+    final separatorWidget = pw.Text(separator, style: pw.TextStyle(color: textColor.shade(0.5)));
+
+    List<pw.Widget> allItems = [];
+    for (int i = 0; i < contactItems.length; i++) {
+      allItems.add(contactItems[i]);
+      if (i < contactItems.length - 1) {
+        allItems.add(separatorWidget);
+      }
+    }
+    if (otherItems.isNotEmpty && contactItems.isNotEmpty) {
+      allItems.add(separatorWidget);
+    }
+    allItems.addAll(otherItems.map((item) => pw.Text(item, style: pw.TextStyle(fontSize: options.fontSize - 1, color: textColor))));
+
+    return pw.Wrap(
+      alignment: isCentered ? pw.WrapAlignment.center : pw.WrapAlignment.start,
+      crossAxisAlignment: pw.WrapCrossAlignment.center,
+      spacing: 8, runSpacing: 4,
+      children: allItems,
+    );
   }
 }

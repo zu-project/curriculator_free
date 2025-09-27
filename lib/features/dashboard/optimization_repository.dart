@@ -8,7 +8,7 @@ import 'package:curriculator_free/models/language.dart';
 import 'package:curriculator_free/models/personal_data.dart';
 import 'package:curriculator_free/models/skill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart'; // <-- IMPORTAÇÃO ESSENCIAL ADICIONADA AQUI
+import 'package:isar/isar.dart';
 
 // Provider SIMPLIFICADO para o repositório.
 final optimizationRepositoryProvider = Provider((ref) {
