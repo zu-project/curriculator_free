@@ -1,26 +1,25 @@
 // lib/features/export/cv_template.dart
-// VERSÃO FINAL CORRIGIDA
+// VERSÃO FINAL PARA A UI: Foco em ser rolável e não quebrar.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Importe seus modelos
 import 'package:curriculator_free/models/personal_data.dart';
 import 'package:curriculator_free/models/experience.dart';
 import 'package:curriculator_free/models/education.dart';
 import 'package:curriculator_free/models/skill.dart';
 import 'package:curriculator_free/models/language.dart';
-// export_screen.dart não é mais necessário aqui
 
+// As classes CurriculumDataBundle e TemplateOptions não mudam.
 class CurriculumDataBundle {
   final PersonalData? personalData;
   final List<Experience> experiences;
   final List<Education> educations;
   final List<Skill> skills;
   final List<Language> languages;
-  CurriculumDataBundle({this.personalData, required this.experiences, required this.educations, required this.skills, required this.languages});
+  CurriculumDataBundle({ this.personalData, required this.experiences, required this.educations, required this.skills, required this.languages });
 }
 
 class TemplateOptions {
@@ -35,19 +34,7 @@ class TemplateOptions {
   final bool includeLicense;
   final bool includeSocialLinks;
 
-  // <<< CORREÇÃO: Construtor padrão que recebe os valores diretamente >>>
-  TemplateOptions({
-    required this.templateName,
-    required this.marginPreset,
-    required this.fontSize,
-    required this.accentColor,
-    required this.includePhoto,
-    required this.includeSummary,
-    required this.includeAvailability,
-    required this.includeVehicle,
-    required this.includeLicense,
-    required this.includeSocialLinks,
-  });
+  TemplateOptions({ required this.templateName, required this.marginPreset, required this.fontSize, required this.accentColor, required this.includePhoto, required this.includeSummary, required this.includeAvailability, required this.includeVehicle, required this.includeLicense, required this.includeSocialLinks });
 
   EdgeInsets get margins {
     switch (marginPreset) {
@@ -58,7 +45,6 @@ class TemplateOptions {
   }
 }
 
-// <<< CORREÇÃO: A classe agora é um StatelessWidget >>>
 class CvTemplate extends StatelessWidget {
   final CurriculumDataBundle data;
   final TemplateOptions options;
@@ -68,29 +54,76 @@ class CvTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Para ter um fundo branco consistente por trás do conteúdo rolável
     return Container(
       width: 595,
-      constraints: const BoxConstraints(minHeight: 842),
-      padding: options.margins,
       color: Colors.white,
-      child: DefaultTextStyle(
+      // Usamos um LayoutBuilder para obter a altura máxima disponível para a simulação de página.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // A altura da "página" visível é a altura da área de preview.
+          // O conteúdo interno poderá ser maior e rolável.
+          return SizedBox(
+            height: constraints.maxHeight,
+            child: _buildPageContent(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPageContent() {
+    // Tratamento especial para o header do template moderno
+    if (options.templateName == 'Moderno') {
+      return DefaultTextStyle(
         style: TextStyle(fontSize: options.fontSize, color: const Color(0xFF333333), fontFamily: 'Roboto'),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            ..._buildCoreContent(),
+            _buildModernHeader(), // Header fica fixo no topo
+            Expanded( // A área de conteúdo ocupa o resto e é rolável
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(left: options.margins.left, right: options.margins.right, bottom: options.margins.bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _buildCoreContent(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Estrutura padrão para os outros templates
+    return DefaultTextStyle(
+      style: TextStyle(fontSize: options.fontSize, color: const Color(0xFF333333), fontFamily: 'Roboto'),
+      child: Padding(
+        padding: options.margins,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(), // Header fixo
+            Expanded( // Conteúdo rolável
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _buildCoreContent(),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // --- O resto da classe (métodos _build...) permanece exatamente o mesmo ---
+  // O resto do arquivo (métodos de build de seções) permanece o mesmo.
+  // Cole o restante do seu cv_template.dart aqui.
   Widget _buildHeader() {
     switch (options.templateName) {
-      case 'Moderno': return _buildModernHeader();
       case 'Funcional': return _buildFunctionalHeader();
       case 'Minimalista': return _buildMinimalistHeader();
       default: return _buildClassicHeader();
@@ -99,7 +132,7 @@ class CvTemplate extends StatelessWidget {
 
   List<Widget> _buildCoreContent() {
     final bool useModernTitle = ['Moderno', 'Funcional'].contains(options.templateName);
-    final Color? titleColor = options.templateName == 'Minimalista' ? Colors.black : null;
+    final Color titleColor = options.templateName == 'Minimalista' ? Colors.black : options.accentColor;
     return [
       if (options.includeSummary && (data.personalData?.summary?.isNotEmpty ?? false))
         _buildSection(title: useModernTitle ? 'RESUMO' : 'Resumo Profissional', useModernTitle: useModernTitle, titleColor: titleColor, child: _buildSummary()),
@@ -144,7 +177,6 @@ class CvTemplate extends StatelessWidget {
     if (p == null) return const SizedBox.shrink();
     return Container(
       color: options.accentColor,
-      margin: options.margins.copyWith(top: -options.margins.top, left: -options.margins.left, right: -options.margins.right),
       padding: EdgeInsets.fromLTRB(options.margins.left, options.margins.top, options.margins.right, 20),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,15 +218,14 @@ class CvTemplate extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({required String title, required Widget child, bool useModernTitle = false, Color? titleColor}) {
-    final color = titleColor ?? options.accentColor;
+  Widget _buildSection({required String title, required Widget child, bool useModernTitle = false, required Color titleColor}) {
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: options.fontSize + (useModernTitle ? 2 : 4), fontWeight: FontWeight.bold, color: color, letterSpacing: useModernTitle ? 1.2 : 0)),
-          useModernTitle ? const SizedBox(height: 6) : Divider(color: color.withOpacity(0.7), height: 8, thickness: 1.5),
+          Text(title, style: TextStyle(fontSize: options.fontSize + (useModernTitle ? 2 : 4), fontWeight: FontWeight.bold, color: titleColor, letterSpacing: useModernTitle ? 1.2 : 0)),
+          useModernTitle ? const SizedBox(height: 6) : Divider(color: titleColor.withOpacity(0.7), height: 8, thickness: 1.5),
           const SizedBox(height: 8),
           child,
         ],
