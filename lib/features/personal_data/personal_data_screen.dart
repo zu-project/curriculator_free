@@ -155,8 +155,30 @@ class _PersonalDataScreenState extends ConsumerState<PersonalDataScreen> {
     }
   }
 
-  Future<void> _pickImage() async { /* ... (código inalterado) ... */ }
-  Future<void> _selectBirthDate(BuildContext context) async { /* ... (código inalterado) ... */ }
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (image != null) {
+      setState(() {
+        _photoPath = image.path;
+        _onChanged();
+      });
+    }
+  }
+
+  Future<void> _selectBirthDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(2000),
+      firstDate: DateTime(1940),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _birthDate) {
+      setState(() {
+        _birthDate = picked;
+        _onChanged();
+      });
+    }
+  }
 
   void _onChanged() => setState(() => _hasChanges = true);
   void _addAllListeners() {

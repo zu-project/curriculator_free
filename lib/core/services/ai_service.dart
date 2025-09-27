@@ -1,6 +1,5 @@
-//C:\Users\ziofl\StudioProjects\curriculator_free\lib\core\services\ai_service.dart
+// C:\Users\ziofl\StudioProjects\curriculator_free\lib\core\services\ai_service.dart
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
@@ -22,22 +21,21 @@ class AIService {
     // Configura o modelo de IA a ser utilizado, neste caso, o Gemini 1.5 Flash,
     // que é rápido e eficiente para tarefas de texto.
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-2.5-flash-lite', // Usando a versão mais recente
       apiKey: apiKey,
       // Configurações de segurança para evitar bloqueios desnecessários.
-      // Para um app de currículos, é seguro desativar os filtros de conteúdo,
-      // pois textos de vagas podem conter palavras que acionariam falsos positivos.
       safetySettings: [
         SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
         SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
         SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
         SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
       ],
+      // Definindo que a resposta deve ser em formato JSON.
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
     );
   }
 
   /// Testa a validade da API Key fazendo a chamada mais leve possível à API.
-  /// Lança uma exceção se a chave for inválida ou houver um problema de rede.
   Future<void> testConnection() async {
     // A função `countTokens` é ideal para testes, pois é a chamada mais simples
     // e de menor custo de tokens para a API. Se funcionar, a chave é válida.
@@ -45,15 +43,12 @@ class AIService {
   }
 
   /// Analisa uma descrição de vaga e um currículo completo, e sugere uma nova versão otimizada.
-  ///
-  /// Retorna um `Map<String, dynamic>` contendo o nome sugerido para a nova versão,
-  /// um novo resumo profissional e as listas de IDs dos itens mais relevantes.
   Future<Map<String, dynamic>> analyzeAndSuggestVersion({
     required String jobDescription,
     required Map<String, dynamic> fullCurriculumJson,
   }) async {
     final prompt = '''
-    Você é um assistente de RH especialista em otimização de currículos. Sua tarefa é analisar a descrição de uma vaga e os dados completos de um currículo, e então sugerir uma nova versão otimizada.
+    Você é um assistente de RH especialista em otimização de currículos. Sua tarefa é analisar a descrição de uma vaga e os dados completos de um currículo em Português-BR, e então sugerir uma nova versão otimizada.
 
     **DESCRIÇÃO DA VAGA:**
     ---
@@ -67,12 +62,12 @@ class AIService {
 
     **SUA TAREFA:**
     1.  Identifique as palavras-chave, requisitos e responsabilidades mais importantes na DESCRIÇÃO DA VAGA.
-    2.  Analise os DADOS DO CURRÍCULO e selecione APENAS os itens (experiências, formações, habilidades, etc.) que são mais relevantes para a vaga.
-    3.  Crie um novo resumo profissional (suggested_summary) curto e impactante, destacando como as experiências e habilidades do candidato se alinham com a vaga. O resumo deve ter no máximo 4 linhas.
+    2.  Analise os DADOS DO CURRÍCULO e selecione APENAS os IDs dos itens (experiências, formações, habilidades, etc.) que são mais relevantes para a vaga.
+    3.  Crie um novo resumo profissional (suggested_summary) curto e impactante (máximo 4 linhas), destacando como as experiências e habilidades do candidato se alinham com a vaga.
     4.  Responda APENAS em formato JSON válido, sem nenhum texto ou explicação adicional antes ou depois. Use a seguinte estrutura:
 
     {
-      "new_version_name": "Versão Otimizada para [Nome do Cargo da Vaga]",
+      "new_version_name": "CV para [Nome do Cargo da Vaga]",
       "suggested_summary": "Seu novo resumo profissional otimizado aqui.",
       "relevant_experience_ids": [1, 3, 4],
       "relevant_education_ids": [1, 2],
@@ -109,12 +104,13 @@ class AIService {
     return _parseJsonResponse(response);
   }
 
+  // ====================== MÉTODO ATUALIZADO ======================
   /// Analisa o conteúdo de um currículo e fornece sugestões de melhoria.
   Future<Map<String, dynamic>> analyzeContent({
     required Map<String, dynamic> contentToAnalyzeJson,
   }) async {
     final prompt = '''
-    Você é um coach de carreira e especialista em redação de currículos. Sua tarefa é analisar o conteúdo textual de um currículo e fornecer sugestões específicas para torná-lo mais profissional, orientado a resultados e impactante.
+    Você é um coach de carreira e especialista em redação de currículos. Sua tarefa é analisar o conteúdo textual de um currículo em Português-BR e fornecer sugestões específicas para torná-lo mais profissional, orientado a resultados e impactante.
 
     **CONTEÚDO DO CURRÍCULO PARA ANÁLISE (JSON):**
     ---
@@ -122,40 +118,53 @@ class AIService {
     ---
 
     **SUAS TAREFAS:**
-    1.  **Reescrever o Resumo:** Analise o resumo profissional ('summary'). Reescreva-o para ser mais conciso, focado em conquistas e alinhado com as melhores práticas de mercado. Use verbos de ação fortes. A sugestão deve ser armazenada na chave 'summary_suggestion'.
-    2.  **Melhorar as Descrições de Experiência:** Para cada experiência na lista 'experiences', analise o campo 'description'. Reescreva cada descrição focando em resultados e métricas (Ex: em vez de "Responsável por vendas", use "Aumentei as vendas em 20% no primeiro trimestre"). Retorne uma lista em 'experience_suggestions', onde cada item contém o 'id' original da experiência e a nova 'description_suggestion'.
-    3.  **Sugerir Novas Habilidades:** Com base nas descrições de experiência e no resumo, identifique habilidades (técnicas e comportamentais) que o candidato demonstrou, mas que talvez não tenha listado. Retorne uma lista de até 10 habilidades em 'skill_suggestions', onde cada item é um objeto com 'name' (o nome da habilidade) e 'type' ('hardSkill' ou 'softSkill').
-    4.  **Formato de Resposta:** Sua resposta deve ser ESTRITAMENTE um objeto JSON, sem nenhum texto adicional. Use o seguinte formato:
+    1.  **Reescrever o Resumo:** Analise o resumo profissional ('summary'). Se ele puder ser melhorado, reescreva-o para ser mais conciso, focado em conquistas e alinhado com as melhores práticas de mercado. Use verbos de ação fortes. Se o resumo já estiver bom, retorne null para a chave 'summary_suggestion'.
+    2.  **Melhorar as Descrições de Experiência:** Para cada experiência na lista 'experiences', analise o campo 'description'. Se puder ser melhorado, reescreva cada descrição focando em resultados e métricas (Ex: em vez de "Responsável por vendas", use "Aumentei as vendas em 20% no primeiro trimestre"). Retorne uma lista em 'experience_suggestions'. Inclua apenas as experiências que você realmente melhorou.
+    3.  **Sugerir Novas Habilidades:** Com base nas descrições de experiência e no resumo, identifique habilidades (técnicas e comportamentais) que o candidato demonstrou, mas que talvez não tenha listado. Retorne uma lista de até 10 habilidades em 'skill_suggestions'.
+    4.  **Formato de Resposta:** Sua resposta deve ser ESTRITAMENTE um objeto JSON, sem nenhum texto adicional. É MUITO IMPORTANTE que cada sugestão individual (resumo, experiência e habilidade) contenha um campo "status": "pending".
 
+    **Exemplo de Formato de Resposta:**
     {
-      "summary_suggestion": "Profissional de [Área] com X anos de experiência...",
-      "experience_suggestions": [ { "id": 1, "description_suggestion": "Liderei o desenvolvimento..." } ],
-      "skill_suggestions": [ { "name": "Flutter", "type": "hardSkill" }, { "name": "Liderança Técnica", "type": "softSkill" } ]
+      "summary_suggestion": {
+        "text": "Profissional de Tecnologia com mais de 9 anos de experiência...",
+        "status": "pending"
+      },
+      "experience_suggestions": [
+        {
+          "id": 1,
+          "description_suggestion": "Liderei o desenvolvimento do app X, resultando em um aumento de 25% no engajamento de usuários.",
+          "status": "pending"
+        }
+      ],
+      "skill_suggestions": [
+        { "name": "Flutter", "type": "hardSkill", "status": "pending" },
+        { "name": "Liderança Técnica", "type": "softSkill", "status": "pending" }
+      ]
     }
     ''';
 
     final response = await _model.generateContent([Content.text(prompt)]);
     return _parseJsonResponse(response);
   }
+  // ====================== FIM DA ATUALIZAÇÃO ======================
 
   /// Método auxiliar privado para processar a resposta da IA e extrair o JSON.
-  /// Lida com a limpeza da string e a decodificação, com tratamento de erros.
   Map<String, dynamic> _parseJsonResponse(GenerateContentResponse response) {
     try {
-      // O texto da resposta pode vir envolvido em ```json ... ```, então removemos isso.
-      final responseText = response.text
-          ?.replaceAll('```json', '')
-          .replaceAll('```', '')
-          .trim();
+      final responseText = response.text?.trim();
 
       if (responseText == null || responseText.isEmpty) {
         throw Exception('A IA retornou uma resposta vazia.');
       }
 
-      return jsonDecode(responseText) as Map<String, dynamic>;
-    } catch (e) {
-      // Se a decodificação falhar, lança um erro mais claro.
+      // O novo SDK com `responseMimeType: 'application/json'` já remove os ```json
+      // então a limpeza manual não é mais tão necessária, mas mantemos por segurança.
+      final cleanJson = responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+
+      return jsonDecode(cleanJson) as Map<String, dynamic>;
+    } catch (e, stack) {
       debugPrint("Falha ao decodificar JSON da IA. Resposta bruta: ${response.text}");
+      debugPrintStack(stackTrace: stack);
       throw Exception('A IA retornou um formato de dados inválido. Tente novamente.');
     }
   }

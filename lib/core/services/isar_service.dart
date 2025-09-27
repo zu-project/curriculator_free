@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:curriculator_free/models/analysis_report.dart';
 
 /// Um serviço singleton responsável por gerenciar a instância do banco de dados Isar.
 ///
@@ -47,6 +48,7 @@ class IsarService {
           SkillSchema,
           LanguageSchema,
           CurriculumVersionSchema,
+          AnalysisReportSchema,
         ],
         directory: directory.path,
         // Habilita o Isar Inspector (http://localhost:8080)

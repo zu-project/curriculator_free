@@ -1,4 +1,4 @@
-//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\versions\version_editor_repository.dart
+// C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\versions\version_editor_repository.dart
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/models/curriculum_version.dart';
 import 'package:curriculator_free/models/education.dart';
@@ -6,7 +6,7 @@ import 'package:curriculator_free/models/experience.dart';
 import 'package:curriculator_free/models/language.dart';
 import 'package:curriculator_free/models/personal_data.dart';
 import 'package:curriculator_free/models/skill.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Importação que faltava para o Provider
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 
 /// Agrupa todos os dados necessários para a tela de edição de uma versão.
@@ -45,10 +45,10 @@ class VersionEditorRepository {
     CurriculumVersion? version;
 
     if (versionId != null) {
-      // --- CORREÇÃO DE TYPO ---
       version = await isar.curriculumVersions.get(versionId);
       if (version != null) {
         await Future.wait([
+          version.personalData.load(), // Carrega também os dados pessoais linkados
           version.experiences.load(),
           version.educations.load(),
           version.skills.load(),
@@ -57,8 +57,10 @@ class VersionEditorRepository {
       }
     }
 
+    // Busca o único registro de dados pessoais
     final allPersonalData = await isar.personalDatas.get(1);
-    // --- CORREÇÃO DE TYPO ---
+
+    // Busca todas as opções
     final allExperiences = await isar.experiences.where().sortByStartDateDesc().findAll();
     final allEducations = await isar.educations.where().sortByStartDateDesc().findAll();
     final allSkills = await isar.skills.where().sortByName().findAll();
@@ -75,6 +77,7 @@ class VersionEditorRepository {
   }
 
   /// Salva ou atualiza uma versão do currículo.
+  // CORREÇÃO: Adicionados os novos parâmetros booleanos
   Future<int> saveVersion({
     int? versionId,
     required String name,
@@ -91,7 +94,6 @@ class VersionEditorRepository {
   }) async {
     final isar = await _isarService.db;
 
-    // --- CORREÇÃO DE TYPO ---
     final versionToSave = (versionId != null ? await isar.curriculumVersions.get(versionId) : null) ?? CurriculumVersion();
 
     versionToSave.name = name.trim();
@@ -99,6 +101,7 @@ class VersionEditorRepository {
       versionToSave.createdAt = DateTime.now();
     }
 
+    // CORREÇÃO: Salvando os novos campos no objeto
     versionToSave.includeSummary = includeSummary;
     versionToSave.includeAvailability = includeAvailability;
     versionToSave.includeVehicle = includeVehicle;
@@ -125,7 +128,6 @@ class VersionEditorRepository {
       versionToSave.languages.clear();
       versionToSave.languages.addAll(selectedLanguages.whereType<Language>());
 
-      // --- CORREÇÃO DE TYPO ---
       savedId = await isar.curriculumVersions.put(versionToSave);
 
       await Future.wait([

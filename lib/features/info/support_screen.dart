@@ -56,7 +56,7 @@ class SupportScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SelectableText(
-                      '000.000.000-00', // <-- SUBSTITUA PELO SEU CPF/CNPJ OU CHAVE ALEATÓRIA
+                      'aa819ebc-dbe3-4816-96ce-92e104451007', // <-- SUBSTITUA PELO SEU CPF/CNPJ OU CHAVE ALEATÓRIA
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -64,7 +64,7 @@ class SupportScreen extends StatelessWidget {
                       icon: const Icon(Icons.copy),
                       label: const Text('Copiar Chave PIX'),
                       onPressed: () => _copyToClipboard(
-                          context, '000.000.000-00', 'Chave PIX copiada!'), // <-- SUBSTITUA AQUI TBM
+                          context, 'aa819ebc-dbe3-4816-96ce-92e104451007', 'Chave PIX copiada!'), // <-- SUBSTITUA AQUI TBM
                     ),
                   ],
                 ),
@@ -77,7 +77,7 @@ class SupportScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SelectableText(
-                      'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', // <-- SUBSTITUA PELA SUA CARTEIRA
+                      '13CDR1y8jYqh6UqSMLoTCk4k8gunp7QSZH', // <-- SUBSTITUA PELA SUA CARTEIRA
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
@@ -86,7 +86,7 @@ class SupportScreen extends StatelessWidget {
                       icon: const Icon(Icons.copy),
                       label: const Text('Copiar Endereço BTC'),
                       onPressed: () => _copyToClipboard(
-                          context, 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', 'Endereço BTC copiado!'), // <-- SUBSTITUA AQUI TBM
+                          context, '13CDR1y8jYqh6UqSMLoTCk4k8gunp7QSZH', 'Endereço BTC copiado!'), // <-- SUBSTITUA AQUI TBM
                     ),
                   ],
                 ),
@@ -100,11 +100,11 @@ class SupportScreen extends StatelessWidget {
                     children: [
                       OutlinedButton(
                         child: const Text('Patreon'),
-                        onPressed: () => _launchURL(context, 'https://www.patreon.com/seu_usuario'), // <-- SUBSTITUA
+                        onPressed: () => _launchURL(context, 'https://www.patreon.com/zuproject'), // <-- SUBSTITUA
                       ),
                       OutlinedButton(
                         child: const Text('LinkedIn'),
-                        onPressed: () => _launchURL(context, 'https://www.linkedin.com/in/seu_usuario'), // <-- SUBSTITUA
+                        onPressed: () => _launchURL(context, 'https://www.linkedin.com/in/flavio-zuicker'), // <-- SUBSTITUA
                       ),
                     ],
                   )

@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
+import 'package:curriculator_free/features/settings/settings_screen.dart';
+import 'package:curriculator_free/core/services/ai_service.dart';
 
 
 // --- Camada de Dados e Lógica (para a Dashboard) ---
@@ -163,11 +165,26 @@ class _VersionCardState extends ConsumerState<_VersionCard> {
         _isProcessingAI = true;
         _processingMessage = 'Traduzindo com IA...';
       });
+
       try {
+        // 1. Busca a chave de API mais recente DE FORMA ASSÍNCRONA
+        final apiKey = await ref.read(apiKeyProvider.future);
+
+        // 2. Valida a chave antes de prosseguir
+        if (apiKey == null || apiKey.isEmpty) {
+          throw Exception('Chave de API do Gemini não configurada! Por favor, adicione-a na tela de Configurações.');
+        }
+
+        // 3. Cria uma instância NOVA do AIService com a chave correta
+        final aiService = AIService(apiKey: apiKey);
+
+        // 4. Chama o repositório, passando a instância do AIService
         await ref.read(translationRepositoryProvider).createTranslatedVersion(
           originalVersionId: widget.version.id,
           targetLanguage: selectedLanguage,
+          aiService: aiService, // <-- Passando a dependência
         );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Nova versão traduzida criada com sucesso!'),
@@ -176,8 +193,10 @@ class _VersionCardState extends ConsumerState<_VersionCard> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Erro na tradução: ${e.toString()}'),
-              backgroundColor: Colors.red));
+            content: Text('Erro na tradução: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5), // Duração maior para ler o erro
+          ));
         }
       } finally {
         if (mounted) {
@@ -243,11 +262,20 @@ class _VersionCardState extends ConsumerState<_VersionCard> {
         _processingMessage = 'Otimizando com IA...';
       });
       try {
+        // APLICANDO A MESMA LÓGICA DE CORREÇÃO AQUI
+        final String? apiKey = await ref.read(apiKeyProvider.future);
 
-        // Usando o nome correto do provider: `optimizationRepositoryProvider`
+        if (apiKey == null || apiKey.isEmpty) {
+          throw Exception('Chave de API do Gemini não configurada! Adicione-a em Configurações.');
+        }
+
+        final aiService = AIService(apiKey: apiKey);
+
         await ref.read(optimizationRepositoryProvider).createOptimizedVersion(
           jobDescription: jobDescriptionController.text,
+          aiService: aiService, // Passando a dependência
         );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Nova versão otimizada criada com sucesso!'),
@@ -256,8 +284,10 @@ class _VersionCardState extends ConsumerState<_VersionCard> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Erro na otimização: ${e.toString()}'),
-              backgroundColor: Colors.red));
+            content: Text('Erro na otimização: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ));
         }
       } finally {
         if (mounted) {
@@ -266,6 +296,7 @@ class _VersionCardState extends ConsumerState<_VersionCard> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -110,7 +110,7 @@ class LanguagesScreen extends ConsumerWidget {
             ? const Icon(Icons.star, color: Colors.amber)
             : const Icon(Icons.language, size: 24),
         title: Text(language.languageName),
-        subtitle: Text('Proficiência: ${_getProficiencyLabel(language.proficiency)}'),
+        subtitle: Text('Proficiência: ${language.proficiency.displayName}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -240,7 +240,7 @@ class _LanguageFormDialogState extends ConsumerState<_LanguageFormDialog> {
                 decoration: const InputDecoration(labelText: 'Nível de Proficiência', border: OutlineInputBorder()),
                 items: LanguageProficiency.values.map((level) => DropdownMenuItem(
                   value: level,
-                  child: Text(LanguagesScreen()._getProficiencyLabel(level)), // Reutiliza a função de label
+                  child: Text(level.displayName),
                 )).toList(),
                 onChanged: (value) => setState(() => _selectedProficiency = value ?? LanguageProficiency.intermediate),
               ),

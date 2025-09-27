@@ -15,6 +15,8 @@ import 'package:curriculator_free/features/versions/version_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:curriculator_free/features/analyzer/analyzer_screen.dart';
+import 'package:curriculator_free/features/analyzer/analysis_detail_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -29,6 +31,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           // Telas principais
           GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
+          GoRoute(path: '/analyzer', builder: (context, state) => const AnalyzerScreen()),
+          GoRoute(
+            path: '/analyzer/:reportId',
+            builder: (context, state) {
+              final reportId = int.tryParse(state.pathParameters['reportId'] ?? '');
+              return AnalysisDetailScreen(reportId: reportId);
+            },
+          ),
           GoRoute(path: '/personal', builder: (context, state) => const PersonalDataScreen()),
           GoRoute(path: '/experience', builder: (context, state) => const ExperienceScreen()),
           GoRoute(path: '/education', builder: (context, state) => const EducationScreen()),

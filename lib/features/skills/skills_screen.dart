@@ -117,7 +117,7 @@ class SkillsScreen extends ConsumerWidget {
     return ListTile(
       leading: skill.isFeatured ? const Icon(Icons.star, color: Colors.amber) : const Icon(Icons.circle, size: 8),
       title: Text(skill.name),
-      subtitle: Text('Nível: ${skill.level.name}'),
+      subtitle: Text('Nível: ${skill.level.displayName}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -269,7 +269,7 @@ class _SkillFormDialogState extends ConsumerState<_SkillFormDialog> {
                     .map((level) =>
                     DropdownMenuItem(
                       value: level,
-                      child: Text(level.name[0].toUpperCase() +
+                      child: Text(level.displayName[0].toUpperCase() +
                           level.name.substring(1)),
                     ))
                     .toList(), // Esta chamada ao .toList() agora está correta.

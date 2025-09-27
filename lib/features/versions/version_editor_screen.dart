@@ -1,134 +1,15 @@
-//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\versions\version_editor_screen.dart
-import 'package:curriculator_free/core/services/isar_service.dart';
-import 'package:curriculator_free/models/curriculum_version.dart';
+// C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\versions\version_editor_screen.dart
+import 'package:curriculator_free/features/versions/version_editor_repository.dart';
 import 'package:curriculator_free/models/education.dart';
 import 'package:curriculator_free/models/experience.dart';
 import 'package:curriculator_free/models/language.dart';
-import 'package:curriculator_free/models/personal_data.dart';
 import 'package:curriculator_free/models/skill.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:isar/isar.dart';
 
-// --- Camada de Dados (Repositório e Providers) ---
-
-/// Agrupa todos os dados necessários para a tela de edição.
-class VersionEditorDataBundle {
-  final CurriculumVersion? versionToEdit;
-  final PersonalData? personalData; // Precisamos dos dados pessoais para saber o que mostrar
-  final List<Experience> allExperiences;
-  final List<Education> allEducations;
-  final List<Skill> allSkills;
-  final List<Language> allLanguages;
-  VersionEditorDataBundle({this.versionToEdit, this.personalData, required this.allExperiences, required this.allEducations, required this.allSkills, required this.allLanguages});
-}
-
-/// Provider para o repositório que contém a lógica de busca e salvamento.
-final versionEditorRepositoryProvider = Provider((ref) {
-  final isar = ref.watch(isarServiceProvider);
-  return VersionEditorRepository(isar);
-});
-
-class VersionEditorRepository {
-  final IsarService _isarService;
-  VersionEditorRepository(this._isarService);
-
-  /// Busca todos os dados necessários para popular a tela de edição.
-  Future<VersionEditorDataBundle> fetchData(int? versionId) async {
-    final isar = await _isarService.db;
-    CurriculumVersion? version;
-
-    if (versionId != null) {
-      version = await isar.curriculumVersions.get(versionId);
-      if (version != null) {
-        // Carrega os dados linkados para saber o que já está selecionado.
-        await Future.wait([
-          version.experiences.load(),
-          version.educations.load(),
-          version.skills.load(),
-          version.languages.load(),
-        ]);
-      }
-    }
-
-    // Busca todas as listas de dados mestres para exibir como opções.
-    final allExperiences = await isar.experiences.where().sortByStartDateDesc().findAll();
-    final allEducations = await isar.educations.where().sortByStartDateDesc().findAll();
-    final allSkills = await isar.skills.where().sortByName().findAll();
-    final allLanguages = await isar.languages.where().sortByLanguageName().findAll();
-
-    return VersionEditorDataBundle(
-      versionToEdit: version,
-      allExperiences: allExperiences,
-      allEducations: allEducations,
-      allSkills: allSkills,
-      allLanguages: allLanguages,
-    );
-  }
-
-  /// Salva ou atualiza uma versão do currículo e seus links.
-  Future<int> saveVersion({
-    int? versionId,
-    required String name,
-    required Set<int> selectedExpIds,
-    required Set<int> selectedEduIds,
-    required Set<int> selectedSkillIds,
-    required Set<int> selectedLangIds,
-  }) async {
-    final isar = await _isarService.db;
-
-    // Se estiver editando, busca a versão. Se não encontrar, ou se estiver criando,
-    // instancia uma nova.
-    final version = versionId != null
-        ? await isar.curriculumVersions.get(versionId)
-        : null;
-
-    final versionToSave = version ?? CurriculumVersion(); // Usa o construtor padrão
-    versionToSave.name = name.trim();
-    if(version == null) {
-      versionToSave.createdAt = DateTime.now();
-    }
-
-    // Busca os objetos reais correspondentes aos IDs selecionados.
-    final personalData = await isar.personalDatas.get(1);
-    final selectedExperiences = await isar.experiences.getAll(selectedExpIds.toList());
-    final selectedEducations = await isar.educations.getAll(selectedEduIds.toList());
-    final selectedSkills = await isar.skills.getAll(selectedSkillIds.toList());
-    final selectedLanguages = await isar.languages.getAll(selectedLangIds.toList());
-
-    late int savedId;
-
-    await isar.writeTxn(() async {
-      // Associa os dados, limpando os links antigos e adicionando os novos.
-      versionToSave.personalData.value = personalData;
-      versionToSave.experiences.clear();
-      versionToSave.experiences.addAll(selectedExperiences.whereType<Experience>());
-      versionToSave.educations.clear();
-      versionToSave.educations.addAll(selectedEducations.whereType<Education>());
-      versionToSave.skills.clear();
-      versionToSave.skills.addAll(selectedSkills.whereType<Skill>());
-      versionToSave.languages.clear();
-      versionToSave.languages.addAll(selectedLanguages.whereType<Language>());
-
-      // Salva a versão principal e obtém seu ID.
-      savedId = await isar.curriculumVersions.put(versionToSave);
-
-      // Salva as mudanças nos IsarLinks.
-      await Future.wait([
-        versionToSave.personalData.save(),
-        versionToSave.experiences.save(),
-        versionToSave.educations.save(),
-        versionToSave.skills.save(),
-        versionToSave.languages.save(),
-      ]);
-    });
-
-    return savedId;
-  }
-}
-
-/// Provider que executa a busca dos dados para a tela.
+// --- Provider que executa a busca dos dados para a tela. ---
+// Usa o repositório importado.
 final versionEditorDataProvider = FutureProvider.autoDispose.family<VersionEditorDataBundle, int?>((ref, versionId) {
   final repository = ref.watch(versionEditorRepositoryProvider);
   return repository.fetchData(versionId);
@@ -152,7 +33,7 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
   final Set<int> _selectedSkillIds = {};
   final Set<int> _selectedLanguageIds = {};
 
-  // --- NOVOS ESTADOS PARA AS OPÇÕES ---
+  // --- ESTADOS PARA AS NOVAS OPÇÕES ---
   bool _includeSummary = true;
   bool _includeAvailability = true;
   bool _includeVehicle = true;
@@ -182,6 +63,7 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // CORREÇÃO: Passando todos os novos campos booleanos para o método saveVersion
       await ref.read(versionEditorRepositoryProvider).saveVersion(
         versionId: widget.versionId,
         name: _nameController.text.trim(),
@@ -189,6 +71,12 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
         selectedEduIds: _selectedEducationIds,
         selectedSkillIds: _selectedSkillIds,
         selectedLangIds: _selectedLanguageIds,
+        includeSummary: _includeSummary,
+        includeAvailability: _includeAvailability,
+        includeVehicle: _includeVehicle,
+        includeLicense: _includeLicense,
+        includeSocialLinks: _includeSocialLinks,
+        includePhoto: _includePhoto,
       );
 
       if (mounted) {
@@ -236,13 +124,25 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
       ),
       body: asyncData.when(
         data: (bundle) {
-          if (!_isInitialDataLoaded && bundle.versionToEdit != null) {
-            final version = bundle.versionToEdit!;
-            _nameController.text = version.name;
-            _selectedExperienceIds.addAll(version.experiences.map((e) => e.id));
-            _selectedEducationIds.addAll(version.educations.map((e) => e.id));
-            _selectedSkillIds.addAll(version.skills.map((e) => e.id));
-            _selectedLanguageIds.addAll(version.languages.map((e) => e.id));
+          // CORREÇÃO: Carregando os valores das novas opções booleanas
+          if (!_isInitialDataLoaded) {
+            final version = bundle.versionToEdit;
+            if (version != null) {
+              _nameController.text = version.name;
+              _selectedExperienceIds.addAll(version.experiences.map((e) => e.id));
+              _selectedEducationIds.addAll(version.educations.map((e) => e.id));
+              _selectedSkillIds.addAll(version.skills.map((e) => e.id));
+              _selectedLanguageIds.addAll(version.languages.map((e) => e.id));
+
+              // Carregando os novos campos
+              _includeSummary = version.includeSummary;
+              _includeAvailability = version.includeAvailability;
+              _includeVehicle = version.includeVehicle;
+              _includeLicense = version.includeLicense;
+              _includeSocialLinks = version.includeSocialLinks;
+              _includePhoto = version.includePhoto;
+            }
+            // Marcamos como carregado mesmo se a versão for nula (criação)
             _isInitialDataLoaded = true;
           }
 
@@ -261,6 +161,16 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'O nome é obrigatório' : null,
                 ),
                 const SizedBox(height: 24),
+                Text('Opções de Inclusão', style: Theme.of(context).textTheme.titleMedium),
+                SwitchListTile(title: const Text('Resumo Profissional'), value: _includeSummary, onChanged: (v) => setState(() => _includeSummary = v)),
+                SwitchListTile(title: const Text('Disponibilidades'), value: _includeAvailability, onChanged: (v) => setState(() => _includeAvailability = v)),
+                SwitchListTile(title: const Text('Veículo Próprio'), value: _includeVehicle, onChanged: (v) => setState(() => _includeVehicle = v)),
+                SwitchListTile(title: const Text('Carteira de Habilitação'), value: _includeLicense, onChanged: (v) => setState(() => _includeLicense = v)),
+                SwitchListTile(title: const Text('Links Sociais'), value: _includeSocialLinks, onChanged: (v) => setState(() => _includeSocialLinks = v)),
+                SwitchListTile(title: const Text('Foto'), value: _includePhoto, onChanged: (v) => setState(() => _includePhoto = v)),
+
+                const Divider(height: 32),
+
                 Text('Selecione os itens para incluir neste currículo:', style: Theme.of(context).textTheme.titleMedium),
 
                 _buildSection<Experience>(
@@ -268,10 +178,10 @@ class _VersionEditorScreenState extends ConsumerState<VersionEditorScreen> {
                     selectedIds: _selectedExperienceIds, idAccessor: (item) => item.id,
                     displayBuilder: (exp) => ListTile(title: Text(exp.jobTitle), subtitle: Text(exp.company))),
                 _buildSection<Education>(
-                    title: 'Formação Acadêmica', items: bundle.allEducations,
-                    selectedIds: _selectedEducationIds, idAccessor: (item) => item.id,
+                  title: 'Formação Acadêmica', items: bundle.allEducations,
+                  selectedIds: _selectedEducationIds, idAccessor: (item) => item.id,
                   displayBuilder: (edu) => ListTile(
-                    title: Text('${edu.degree} em ${edu.fieldOfStudy}'), // Mostra ambos os campos
+                    title: Text('${edu.degree} em ${edu.fieldOfStudy}'),
                     subtitle: Text(edu.institution),
                   ),
                 ),
