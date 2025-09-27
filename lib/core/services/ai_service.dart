@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\core\services\ai_service.dart
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -21,7 +22,7 @@ class AIService {
     // Configura o modelo de IA a ser utilizado, neste caso, o Gemini 1.5 Flash,
     // que é rápido e eficiente para tarefas de texto.
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash-lite',
       apiKey: apiKey,
       // Configurações de segurança para evitar bloqueios desnecessários.
       // Para um app de currículos, é seguro desativar os filtros de conteúdo,

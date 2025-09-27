@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\models\skill.dart
 import 'package:isar/isar.dart';
 
 part 'skill.g.dart';

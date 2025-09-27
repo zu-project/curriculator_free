@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\info\support_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';

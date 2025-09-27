@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\education\education_screen.dart
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/models/education.dart';
 import 'package:flutter/material.dart';

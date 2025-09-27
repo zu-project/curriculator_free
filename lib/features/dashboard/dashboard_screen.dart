@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\dashboard\dashboard_screen.dart
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/features/dashboard/optimization_repository.dart';
 import 'package:curriculator_free/features/dashboard/translation_repository.dart';

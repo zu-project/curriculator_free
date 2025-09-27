@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\versions\version_editor_screen.dart
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/models/curriculum_version.dart';
 import 'package:curriculator_free/models/education.dart';

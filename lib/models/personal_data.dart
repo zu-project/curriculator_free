@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\models\personal_data.dart
 import 'package:isar/isar.dart';
 
 part 'personal_data.g.dart';

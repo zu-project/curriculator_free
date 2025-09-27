@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\models\experience.dart
 import 'package:isar/isar.dart';
 
 part 'experience.g.dart';

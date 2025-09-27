@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\models\education.dart
 import 'package:isar/isar.dart';
 
 part 'education.g.dart';

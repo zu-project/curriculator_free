@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\analyzer\analyzer_repository.dart
 import 'package:curriculator_free/core/services/ai_service.dart';
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/features/personal_data/personal_data_screen.dart';

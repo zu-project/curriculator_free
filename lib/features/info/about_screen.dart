@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\info\about_screen.dart
 import 'package:flutter/material.dart';
 
 class AboutScreen extends StatelessWidget {

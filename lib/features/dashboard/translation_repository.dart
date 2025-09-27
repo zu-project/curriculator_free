@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\dashboard\translation_repository.dart
 import 'package:curriculator_free/core/services/ai_service.dart';
 import 'package:curriculator_free/core/services/isar_service.dart';
 import 'package:curriculator_free/features/settings/settings_screen.dart'; // Importa o provider da API key

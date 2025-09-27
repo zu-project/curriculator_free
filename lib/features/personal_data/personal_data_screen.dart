@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\personal_data\personal_data_screen.dart
 import 'dart:io';
 
 import 'package:curriculator_free/core/services/isar_service.dart';

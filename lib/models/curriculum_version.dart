@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\models\curriculum_version.dart
 import 'package:curriculator_free/models/education.dart';
 import 'package:curriculator_free/models/experience.dart';
 import 'package:curriculator_free/models/language.dart';

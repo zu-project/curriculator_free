@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\core\routing\app_router.dart
 import 'package:curriculator_free/features/dashboard/dashboard_screen.dart';
 import 'package:curriculator_free/features/education/education_screen.dart';
 import 'package:curriculator_free/features/experience/experience_screen.dart';

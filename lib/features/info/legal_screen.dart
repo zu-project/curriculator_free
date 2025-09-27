@@ -1,3 +1,4 @@
+//C:\Users\ziofl\StudioProjects\curriculator_free\lib\features\info\legal_screen.dart
 import 'package:flutter/material.dart';
 
 class LegalScreen extends StatelessWidget {
